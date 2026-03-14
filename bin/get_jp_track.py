@@ -69,14 +69,17 @@ def process_csv_files() -> None:
 
         # [2] Back up the raw CSV to S3
         s3 = S3Client("s3_get")
-        s3_backup = "ok"
-        try:
-            uri = s3.upload(f)
-            logging.info("%s S3 backup OK: %s", f.name, uri)
-        except Exception:
-            s3_backup = "ng"
-            logging.warning("%s S3 backup failed. Continuing.", f.name)
-        pm.set_s3_backup(s3_backup)
+        if s3.enabled:
+            s3_backup = "ok"
+            try:
+                uri = s3.upload(f)
+                logging.info("%s S3 backup OK: %s", f.name, uri)
+            except Exception:
+                s3_backup = "ng"
+                logging.warning("%s S3 backup failed. Continuing.", f.name)
+            pm.set_s3_backup(s3_backup)
+        else:
+            logging.info("%s S3 backup skipped (disabled).", f.name)
 
         # [3] Validate CSV format (column count, required fields, datetime format)
         try:

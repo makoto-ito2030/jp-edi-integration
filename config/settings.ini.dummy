@@ -9,6 +9,7 @@ get_dir     = /edi/outbound
 [s3_get]
 bucket      = dummy-bucket-name
 prefix      = edi/input/
+enabled     = true
 
 [s3_put]
 bucket      = dummy-bucket-name
