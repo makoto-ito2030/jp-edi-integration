@@ -4,7 +4,7 @@ import logging
 from typing import List, Set, Tuple
 
 from lib.clients.db_client import DBClient
-from lib.get_progress_manager import GetProgressManager
+from lib.get_jp_track.progress_manager import GetProgressManager
 
 logger = logging.getLogger(__name__)
 

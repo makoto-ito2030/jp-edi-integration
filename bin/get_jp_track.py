@@ -7,11 +7,11 @@ from pathlib import Path
 
 from lib.clients.sftp_client import SFTPClient
 from lib.clients.s3_client import S3Client
-from lib.get_check_track_csv import validate_file
-from lib.get_parse_track_csv import parse_csv
+from lib.get_jp_track.check_track_csv import validate_file
+from lib.get_jp_track.parse_track_csv import parse_csv
 from lib.lock_manager import acquire_lock, release_lock
-from lib.get_progress_manager import GetProgressManager
-from lib.get_insert_rows import insert_rows
+from lib.get_jp_track.progress_manager import GetProgressManager
+from lib.get_jp_track.insert_rows import insert_rows
 
 BASE_DIR     = Path(__file__).resolve().parent.parent
 CONFIG_PATH  = BASE_DIR / "config" / "settings.ini"
