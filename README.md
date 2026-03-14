@@ -21,10 +21,11 @@
 │   │   ├── s3_client.py            # S3クライアント（s3_get/s3_put セクション対応）
 │   │   └── db_client.py            # DBクライアント（RDS/MySQL）
 │   ├── lock_manager.py             # ロックファイルによる二重起動防止
-│   ├── get_progress_manager.py     # GETバッチ進捗管理
-│   ├── get_check_track_csv.py      # 追跡CSVフォーマットチェック
-│   ├── get_parse_track_csv.py      # 追跡CSVパース・変換
-│   └── get_insert_rows.py          # 重複チェック・バルクINSERTロジック
+│   └── get_jp_track/
+│       ├── progress_manager.py     # GETバッチ進捗管理
+│       ├── check_track_csv.py      # 追跡CSVフォーマットチェック
+│       ├── parse_track_csv.py      # 追跡CSVパース・変換
+│       └── insert_rows.py          # 重複チェック・バルクINSERTロジック
 │
 ├── work/
 │   ├── put_outbox/                 # PUT用 送信前CSV
