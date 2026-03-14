@@ -1,0 +1,22 @@
+[sftp]
+host        = dummy-sftp-host.example.com
+port        = 22
+user        = dummy_user
+password    = dummy_password
+put_dir     = /edi/inbound
+get_dir     = /edi/outbound
+
+[s3_get]
+bucket      = dummy-bucket-name
+prefix      = edi/input/
+
+[s3_put]
+bucket      = dummy-bucket-name
+prefix      = edi/output/
+
+[db]
+host        = dummy-rds-endpoint.rds.amazonaws.com
+port        = 3306
+user        = dummy_user
+password    = dummy_password
+database    = dummy_database

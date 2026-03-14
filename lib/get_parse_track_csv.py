@@ -1,0 +1,37 @@
+"""lib/get_parse_track_csv.py - Parse and convert tracking CSV."""
+
+import csv
+from datetime import datetime
+
+# TODO: Confirm official carrier name after receiving real CSV from Japan Post
+SHIPPING_CLUB = "日本郵便"
+
+def parse_csv(filepath):
+    """
+    Parse CSV and return list of tuples for logistic_track INSERT.
+    Returns: list of tuple (tracking_no, report_date, shipping_club, baggage_status,
+                            store_nm_in_charge, create_time, update_time)
+    """
+    rows = []
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with open(filepath, encoding="utf-8", newline="") as f:
+        reader = csv.reader(f)
+        next(reader)  # skip header
+        for row in reader:
+            # TODO: Confirm actual column order and format after receiving real CSV from Japan Post
+            tracking_no        = row[0].strip()
+            store_nm_in_charge = row[1].strip()
+            report_date        = datetime.strptime(row[2].strip(), "%Y/%m/%d %H:%M:%S").strftime("%Y-%m-%d %H:%M:%S")
+            # row[3] status code is not used
+            baggage_status     = row[4].strip()
+
+            rows.append((
+                tracking_no,
+                report_date,
+                SHIPPING_CLUB,
+                baggage_status,
+                store_nm_in_charge,
+                now,  # create_time
+                now,  # update_time
+            ))
+    return rows
