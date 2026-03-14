@@ -10,7 +10,7 @@ import paramiko
 
 logger = logging.getLogger(__name__)
 
-CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "settings.ini"
+CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / "config" / "settings.ini"
 
 
 def _load_sftp_config() -> dict:
