@@ -1,5 +1,6 @@
 """JP EDI - GET batch for tracking CSV."""
 
+import configparser
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -13,9 +14,14 @@ from lib.get_progress_manager import GetProgressManager
 from lib.get_insert_rows import insert_rows
 
 BASE_DIR     = Path(__file__).resolve().parent.parent
+CONFIG_PATH  = BASE_DIR / "config" / "settings.ini"
 INBOX_DIR    = BASE_DIR / "work" / "get_inbox"
 LOCK_FILE    = BASE_DIR / "work" / "get_jp_track.lock"
 LOG_FILE     = BASE_DIR / "logs" / f"get_jp_track_{datetime.now().strftime('%Y%m')}.log"
+
+_config = configparser.ConfigParser()
+_config.read(CONFIG_PATH, encoding="utf-8")
+S3_BACKUP_ENABLED = _config.getboolean("feature", "s3_backup_enabled", fallback=True)
 
 
 def init_env() -> None:
@@ -68,8 +74,8 @@ def process_csv_files() -> None:
             logging.info("%s progress file created.", f.name)
 
         # [2] Back up the raw CSV to S3
-        s3 = S3Client("s3_get")
-        if s3.enabled:
+        if S3_BACKUP_ENABLED:
+            s3 = S3Client("s3_get")
             s3_backup = "ok"
             try:
                 uri = s3.upload(f)

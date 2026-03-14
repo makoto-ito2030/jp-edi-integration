@@ -9,7 +9,6 @@ get_dir     = /edi/outbound
 [s3_get]
 bucket      = dummy-bucket-name
 prefix      = edi/input/
-enabled     = true
 
 [s3_put]
 bucket      = dummy-bucket-name
@@ -21,3 +20,6 @@ port        = 3306
 user        = dummy_user
 password    = dummy_password
 database    = dummy_database
+
+[feature]
+s3_backup_enabled = true

@@ -26,7 +26,6 @@ def _load_s3_config(section: str) -> dict:
     return {
         "bucket": s3["bucket"],
         "prefix": s3["prefix"],
-        "enabled": s3.getboolean("enabled", fallback=True),
     }
 
 
@@ -38,7 +37,6 @@ class S3Client:
         conf = _load_s3_config(section)
         self._bucket = conf["bucket"]
         self._prefix = conf["prefix"]
-        self.enabled = conf["enabled"]
         self._client = boto3.client("s3")
         logger.info("S3Client initialized: section=%s bucket=%s prefix=%s",
                     section, self._bucket, self._prefix)
