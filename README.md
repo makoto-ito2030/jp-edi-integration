@@ -79,6 +79,10 @@ port        = 3306
 user        = dummy_user
 password    = dummy_password
 database    = dummy_database
+
+[feature]
+s3_backup_enabled = true
+sftp_get_enabled  = true
 ```
 
 ## 実行方法と処理概要
