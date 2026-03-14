@@ -90,7 +90,7 @@ sftp_get_enabled  = true
 
 ### PUTバッチ
 ```bash
-python ./bin/put_jp_edi.py
+python -m bin.put_jp_edi
 ```
 1. S3の指定パスから自動生成された出荷CSVを取得し、`work/put_outbox` に格納
 2. `work/put_outbox` 配下のCSVファイルを列挙
@@ -100,7 +100,7 @@ python ./bin/put_jp_edi.py
 
 ### GETバッチ
 ```bash
-python ./bin/get_jp_track.py
+python -m bin.get_jp_track
 ```
 1. ロックファイル（`work/get_jp_track.lock`）で二重起動を防止
 2. JPサーバから追跡CSVをSFTPで取得し、`work/get_inbox` に保存
@@ -121,6 +121,6 @@ python ./bin/get_jp_track.py
 各クライアントは単体で接続確認が可能。
 
 ```bash
-python lib/clients/sftp_client.py   # SFTP接続確認
-python lib/clients/db_client.py     # DB接続確認・logistic_track件数表示
+python -m lib.clients.sftp_client   # SFTP接続確認
+python -m lib.clients.db_client     # DB接続確認・logistic_track件数表示
 ```
