@@ -34,7 +34,7 @@
 │
 └── logs/
     ├── put_jp_edi.log              # PUTバッチログ
-    └── get_jp_track.log            # GETバッチログ
+    └── get_jp_track_YYYYMM.log     # GETバッチログ（月次）
 ```
 ※ `work/` と `logs/` はバッチ初回実行時に自動生成される
 

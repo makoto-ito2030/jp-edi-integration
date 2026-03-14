@@ -1,6 +1,7 @@
 """JP EDI - GET batch for tracking CSV."""
 
 import logging
+from datetime import datetime
 from pathlib import Path
 
 from lib.clients.sftp_client import SFTPClient
@@ -14,7 +15,7 @@ from lib.get_insert_rows import insert_rows
 BASE_DIR     = Path(__file__).resolve().parent.parent
 INBOX_DIR    = BASE_DIR / "work" / "get_inbox"
 LOCK_FILE    = BASE_DIR / "work" / "get_jp_track.lock"
-LOG_FILE     = BASE_DIR / "logs" / "get_jp_track.log"
+LOG_FILE     = BASE_DIR / "logs" / f"get_jp_track_{datetime.now().strftime('%Y%m')}.log"
 
 
 def init_env() -> None:
