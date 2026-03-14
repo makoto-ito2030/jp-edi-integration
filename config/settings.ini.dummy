@@ -23,3 +23,4 @@ database    = dummy_database
 
 [feature]
 s3_backup_enabled = true
+sftp_get_enabled = true

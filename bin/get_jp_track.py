@@ -22,6 +22,7 @@ LOG_FILE     = BASE_DIR / "logs" / f"get_jp_track_{datetime.now().strftime('%Y%m
 _config = configparser.ConfigParser()
 _config.read(CONFIG_PATH, encoding="utf-8")
 S3_BACKUP_ENABLED = _config.getboolean("feature", "s3_backup_enabled", fallback=True)
+SFTP_GET_ENABLED = _config.getboolean("feature", "sftp_get_enabled", fallback=True)
 
 
 def init_env() -> None:
@@ -126,7 +127,10 @@ if __name__ == "__main__":
     acquire_lock(LOCK_FILE)
     try:
         # Step 1: Download CSV files from JP server via SFTP
-        get_csv_from_jp()
+        if SFTP_GET_ENABLED:
+            get_csv_from_jp()
+        else:
+            logging.info("SFTP download skipped (disabled).")
         # Step 2: Validate, parse, and insert each CSV into the DB
         process_csv_files()
     finally:
