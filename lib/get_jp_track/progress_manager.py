@@ -8,7 +8,7 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-BASE_DIR     = Path(__file__).resolve().parent.parent
+BASE_DIR     = Path(__file__).resolve().parent.parent.parent
 PROGRESS_DIR = BASE_DIR / "work" / "get_progress"
 
 
