@@ -91,8 +91,10 @@ def insert_rows(csv_name: str, rows: List[Tuple],
                     resume_from + chunk_start + 1,
                     resume_from + chunk_start + len(chunk),
                 )
-                for i, row in enumerate(new_rows):
-                    row_no = resume_from + chunk_start + i + 1
+                # Build a map from row tuple to its original index in chunk
+                chunk_index = {id(r): chunk_start + j for j, r in enumerate(chunk)}
+                for row in new_rows:
+                    row_no = resume_from + chunk_index[id(row)] + 1
                     try:
                         # Insert single row
                         _bulk_insert(db, [row])
