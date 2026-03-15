@@ -113,11 +113,14 @@ def process_csv_files() -> None:
         insert_rows(f.name, rows, resume_from, pm)
 
         # [7] Delete progress file if all OK, otherwise leave for manual action
-        pm.finalize()
+        all_ok = pm.finalize()
 
-        # [8] Remove CSV from get_inbox (original is preserved in S3)
-        f.unlink(missing_ok=True)
-        logging.info("%s deleted from get_inbox.", f.name)
+        # [8] Remove CSV from get_inbox only if all OK (original is preserved in S3)
+        if all_ok:
+            f.unlink(missing_ok=True)
+            logging.info("%s deleted from get_inbox.", f.name)
+        else:
+            logging.warning("%s left in get_inbox for manual action.", f.name)
 
 
 

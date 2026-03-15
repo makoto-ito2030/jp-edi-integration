@@ -89,8 +89,10 @@ class GetProgressManager:
         self._data["s3_backup"] = status
         self._save()
 
-    def finalize(self) -> None:
-        """Delete progress file if all OK, otherwise leave for manual action."""
+    def finalize(self) -> bool:
+        """Delete progress file if all OK, otherwise leave for manual action.
+        Returns True if all OK (no issues), False if issues remain.
+        """
         has_issue = (
             self._data.get("error_rows", {}).get("count", 0) > 0
             or self._data.get("s3_backup") == "ng"
@@ -101,9 +103,11 @@ class GetProgressManager:
                 "%s completed with issues. Progress file left for manual action: %s",
                 self._csv_name, self._path,
             )
+            return False
         else:
             self._path.unlink(missing_ok=True)
             logger.info("%s all OK. Progress file deleted.", self._csv_name)
+            return True
 
     @property
     def processed_rows(self) -> int:
