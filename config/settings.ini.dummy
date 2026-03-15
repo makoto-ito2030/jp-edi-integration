@@ -20,6 +20,7 @@ port        = 3306
 user        = dummy_user
 password    = dummy_password
 database    = dummy_database
+strict_mode = true
 
 [feature]
 s3_backup_enabled = true

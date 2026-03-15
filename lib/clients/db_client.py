@@ -29,6 +29,7 @@ def _load_db_config() -> dict:
         "user":     db["user"],
         "password": db["password"],
         "database": db["database"],
+        "strict_mode": config.getboolean("db", "strict_mode", fallback=True),
     }
 
 
@@ -40,6 +41,7 @@ class DBClient:
         self._user     = conf["user"]
         self._password = conf["password"]
         self._database = conf["database"]
+        self._strict_mode = conf["strict_mode"]
         self._conn: Optional[pymysql.connections.Connection] = None
 
     def __enter__(self) -> "DBClient":
@@ -51,6 +53,7 @@ class DBClient:
                 password=self._password,
                 database=self._database,
                 cursorclass=pymysql.cursors.DictCursor,
+                init_command="SET SESSION sql_mode='STRICT_TRANS_TABLES'" if self._strict_mode else None,
             )
         except Exception:
             logger.exception("Failed to connect to %s:%s", self._host, self._port)
