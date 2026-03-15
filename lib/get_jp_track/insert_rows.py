@@ -108,5 +108,7 @@ def insert_rows(csv_name: str, rows: List[Tuple],
                         logger.error(
                             "%s row %d INSERT error (skipped): %s", csv_name, row_no, e
                         )
+                # Count skipped (duplicate) rows that were not in new_rows
+                processed += skipped
                 # Update progress after processing the entire fallback chunk
                 pm.update(processed, inserted)
