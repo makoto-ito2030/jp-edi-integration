@@ -92,3 +92,5 @@ if __name__ == "__main__":
     with DBClient() as client:
         rows = client.execute("SELECT COUNT(*) AS cnt FROM logistic_track")
         print(f"logistic_track: {rows[0]['cnt']} rows")
+        mode = client.execute("SELECT @@SESSION.sql_mode AS sql_mode")
+        print(f"sql_mode: {mode[0]['sql_mode']}")
