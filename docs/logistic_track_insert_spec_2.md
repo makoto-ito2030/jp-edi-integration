@@ -74,10 +74,11 @@ INSERT前に `tracking_no + baggage_status + report_date` の3項目でDBを照�
   "source_file": "track_20231223.csv",
   "started_at": "2023/12/23 13:05:12",
   "updated_at": "2023/12/23 13:06:45",
-  "s3_backup": "ok",        // 失敗時: "ng"
-  "format_error": null,     // NGの場合: エラー内容の文字列
+  "s3_backup": "ok",                // 失敗時: "ng"
+  "format_check": "ok",             // NGの場合: "ng"
+  "format_check_error": null,       // NGの場合: エラー内容の文字列
   "total_rows": 15000,
-  "processed_rows": 3000,   // 3001行目以降が未処理
+  "processed_rows": 3000,           // 3001行目以降が未処理
   "inserted_rows": 2998,
   "error_rows": {
     "count": 2,
