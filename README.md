@@ -90,10 +90,6 @@ sftp_get_enabled  = true
 sftp_put_enabled  = true
 ```
 
-## タスクスケジューラ
-
-（後で記載）
-
 ## 実行方法と処理概要
 
 ### PUTバッチ
@@ -146,8 +142,6 @@ python -m bin.get_jp_track
         "reason": "Duplicate entry..."  // エラー理由
       }
     ]
-  }
-}
-```
+## タスクスケジューラ
 
-
+（後で記載）
