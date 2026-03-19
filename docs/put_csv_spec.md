@@ -37,8 +37,6 @@ WHERE is_delete = 0
 ORDER BY id ASC
 ```
 
-確認事項: `goods_hawb.hawb_status` の抽出対象値・送信後の更新値を確認（下記「確認事項」参照）
-
 ---
 
 ## 出力カラム
