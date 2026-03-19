@@ -8,7 +8,7 @@
 ```
 ./
 ├── bin/
-│   ├── put_jp_edi.py               # PUTバッチ（出荷CSV→JP）※未実装
+│   ├── put_jp_edi.py               # PUTバッチ（出荷CSV→JP）
 │   └── get_jp_track.py             # GETバッチ（追跡CSV→DB）
 │
 ├── config/
@@ -92,11 +92,10 @@ sftp_get_enabled  = true
 ```bash
 python -m bin.put_jp_edi
 ```
-1. S3の指定パスから自動生成された出荷CSVを取得し、`work/put_outbox` に格納
-2. `work/put_outbox` 配下のCSVファイルを列挙
-3. SFTPでJPサーバへPUT
-4. 成功ファイルは削除（S3に原本あり）、ログに成功を出力
-5. 失敗ファイルを `work/put_error` へ移動、ログにエラーを出力して終了
+1. DBから出荷CSVを生成し、`work/put_outbox` に配置
+2. `work/put_outbox` のCSVをSFTPでJPサーバへPUT
+3. 成功時：S3へバックアップ、ローカルファイルを削除、`goods_hawb_ext.jp_download` を更新、ログに成功を出力
+4. 失敗時：`work/put_error` へ移動、ログにエラーを出力して終了
 
 ### GETバッチ
 ```bash
@@ -116,11 +115,4 @@ python -m bin.get_jp_track
 処理中にサーバーが停止した場合、`work/get_inbox/` にCSVが残り、`work/get_progress/` に進捗ファイルが残る。
 再起動後にバッチを実行すると、進捗ファイルを読み込み処理済み行の次から自動的に再開する。
 
-## 接続確認
 
-各クライアントは単体で接続確認が可能。
-
-```bash
-python -m lib.clients.sftp_client   # SFTP接続確認
-python -m lib.clients.db_client     # DB接続確認・logistic_track件数表示
-```
