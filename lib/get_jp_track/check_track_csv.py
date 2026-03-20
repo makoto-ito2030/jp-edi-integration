@@ -9,7 +9,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-# TODO: Confirm actual CSV column count after receiving real CSV from Japan Post
+# 追跡番号, 取扱局／支店名, 取扱日時, ステータスコード, ステータス
 EXPECTED_COLUMNS = 5
 
 def validate_file(filepath):
@@ -30,7 +30,6 @@ def validate_file(filepath):
                 raise ValueError(f"Row {i}: invalid column count")
             if any(v.strip() == "" for v in row):
                 raise ValueError(f"Row {i}: empty value found {row}")
-            # TODO: Confirm actual datetime format after receiving real CSV from Japan Post
             try:
                 datetime.strptime(row[2].strip(), "%Y/%m/%d %H:%M:%S")
             except ValueError:

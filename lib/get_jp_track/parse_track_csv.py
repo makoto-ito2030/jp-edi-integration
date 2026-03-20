@@ -3,7 +3,7 @@
 import csv
 from datetime import datetime
 
-# TODO: Confirm official carrier name after receiving real CSV from Japan Post
+# CSVカラム順：追跡番号, 取扱局／支店名, 取扱日時, ステータスコード, ステータス
 SHIPPING_CLUB = "日本郵便"
 
 def parse_csv(filepath):
@@ -18,11 +18,10 @@ def parse_csv(filepath):
         reader = csv.reader(f)
         next(reader)  # skip header
         for row in reader:
-            # TODO: Confirm actual column order and format after receiving real CSV from Japan Post
             tracking_no        = row[0].strip()
             store_nm_in_charge = row[1].strip()
             report_date        = datetime.strptime(row[2].strip(), "%Y/%m/%d %H:%M:%S").strftime("%Y-%m-%d %H:%M:%S")
-            # row[3] status code is not used
+            # row[3] ステータスコードは使用しない
             baggage_status     = row[4].strip()
 
             rows.append((

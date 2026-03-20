@@ -6,14 +6,10 @@ import traceback
 from datetime import datetime
 from pathlib import Path
 
-from lib.clients.sftp_client import SFTPClient
-from lib.clients.s3_client import S3Client
-from lib.get_jp_track.check_track_csv import validate_file
-from lib.get_jp_track.parse_track_csv import parse_csv
 from lib.lock_manager import acquire_lock, release_lock
-from lib.get_jp_track.progress_manager import GetProgressManager
-from lib.get_jp_track.insert_rows import insert_rows
 from lib.mail_client import send_error_mail
+from lib.get_jp_track.fetch_csv import fetch_csv
+from lib.get_jp_track.process_csv import process_csv
 
 BASE_DIR     = Path(__file__).resolve().parent.parent
 CONFIG_PATH  = BASE_DIR / "config" / "settings.ini"
@@ -42,110 +38,48 @@ def init_env() -> None:
     )
 
 
-def get_csv_from_jp() -> None:
-    # Connect to JP server via SFTP and download all CSV files to get_inbox
-    with SFTPClient() as client:
-        files = client.listdir()
-        csv_files = [f for f in files if f.endswith(".csv")]
-        if not csv_files:
-            logging.info("No CSV files on JP server.")
-            return
-        logging.info("Found %d CSV file(s) on JP server.", len(csv_files))
-        for name in csv_files:
-            client.get(name, INBOX_DIR / name)
-            logging.info("%s -> get_inbox", name)
+def _on_format_error(filename: str, error: Exception) -> None:
+    if MAIL_ENABLED:
+        send_error_mail(
+            subject=f"[ERROR] get_jp_track フォーマットエラー: {filename}",
+            body=f"フォーマットチェックでエラーが発生しました。\n\nファイル: {filename}\nエラー: {error}",
+        )
 
 
-def process_csv_files() -> None:
-    # Process each CSV file in get_inbox sequentially
-    files = sorted(INBOX_DIR.glob("*.csv"))
-    if not files:
-        logging.info("No CSV files to process.")
-        return
-    logging.info("Found %d CSV file(s) in get_inbox.", len(files))
-
-    for f in files:
-        logging.info("--- Processing: %s ---", f.name)
-        pm = GetProgressManager(f.name)
-
-        # [1] Initialize or resume progress file immediately
-        if pm.load():
-            resume_from = pm.processed_rows
-            logging.info("%s resuming from row %d.", f.name, resume_from + 1)
-        else:
-            resume_from = 0
-            pm.init()
-            logging.info("%s progress file created.", f.name)
-
-        # [2] Back up the raw CSV to S3
-        if S3_BACKUP_ENABLED:
-            s3 = S3Client("s3")
-            s3_backup = "ok"
-            try:
-                uri = s3.upload(f)
-                logging.info("%s S3 backup OK: %s", f.name, uri)
-            except Exception:
-                s3_backup = "ng"
-                logging.warning("%s S3 backup failed. Continuing.", f.name)
-            pm.set_s3_backup(s3_backup)
-        else:
-            logging.info("%s S3 backup skipped (disabled).", f.name)
-
-        # [3] Validate CSV format (column count, required fields, datetime format)
-        try:
-            validate_file(f)
-            pm.set_format_check("ok")
-            logging.info("%s format OK", f.name)
-        except ValueError as e:
-            pm.set_format_check("ng", str(e))
-            logging.error("%s format NG (left in get_inbox for retry): %s", f.name, e)
-            if MAIL_ENABLED:
-                send_error_mail(
-                    subject=f"[ERROR] get_jp_track フォーマットエラー: {f.name}",
-                    body=f"フォーマットチェックでエラーが発生しました。\n\nファイル: {f.name}\nエラー: {e}",
-                )
-            continue
-
-        # [4] Parse CSV into DB row tuples
-        rows = parse_csv(f)
-        total_rows = len(rows)
-        logging.info("%s parsed: %d rows", f.name, total_rows)
-        pm.set_total_rows(total_rows)
-
-        # [5] Slice rows for resume
-        if resume_from:
-            rows = rows[resume_from:]
-
-        # [6] Insert rows into DB (bulk INSERT with row-by-row fallback on error)
-        insert_rows(f.name, rows, resume_from, pm)
-
-        # [7] Delete progress file if all OK, otherwise leave for manual action
-        all_ok = pm.finalize()
-
-        # [8] Remove CSV from get_inbox only if all OK (original is preserved in S3)
-        if all_ok:
-            f.unlink(missing_ok=True)
-            logging.info("%s deleted from get_inbox.", f.name)
-        else:
-            logging.warning("%s left in get_inbox for manual action.", f.name)
-            if MAIL_ENABLED:
-                send_error_mail(
-                    subject=f"[ERROR] get_jp_track 処理エラー: {f.name}",
-                    body=f"処理中にエラーが発生しました。手動対応が必要です。\n\nファイル: {f.name}\n進捗ファイル: work/get_progress/{f.name}.progress.json",
-                )
+def _on_complete_with_error(filename: str) -> None:
+    if MAIL_ENABLED:
+        send_error_mail(
+            subject=f"[ERROR] get_jp_track 処理エラー: {filename}",
+            body=f"処理中にエラーが発生しました。手動対応が必要です。\n\nファイル: {filename}\n進捗ファイル: work/get_progress/{filename}.progress.json",
+        )
 
 
 if __name__ == "__main__":
     init_env()
+
+    # Step 1: ロックファイルで二重起動を防止
     acquire_lock(LOCK_FILE)
     try:
-        # Step 1: Download CSV files from JP server via SFTP
+        # Step 2: JPサーバから追跡CSVをSFTPで取得し get_inbox に保存
         if SFTP_GET_ENABLED:
-            get_csv_from_jp()
+            fetch_csv(INBOX_DIR)
         else:
             logging.info("SFTP download skipped (disabled).")
-        # Step 2: Validate, parse, and insert each CSV into the DB
-        process_csv_files()
+
+        # Step 3: get_inbox のCSVを1件ずつ処理
+        #   - 進捗ファイル作成／再開
+        #   - S3バックアップ
+        #   - フォーマットチェック
+        #   - パース・重複チェック・バルクINSERT
+        #   - 完走後クリーンアップ
+        for f in sorted(INBOX_DIR.glob("*.csv")):
+            process_csv(
+                f,
+                s3_backup_enabled=S3_BACKUP_ENABLED,
+                on_format_error=_on_format_error,
+                on_complete_with_error=_on_complete_with_error,
+            )
+
     except Exception:
         logging.exception("Batch failed.")
         if MAIL_ENABLED:
@@ -154,4 +88,5 @@ if __name__ == "__main__":
                 body=f"get_jp_track バッチでエラーが発生しました。\n\n{traceback.format_exc()}",
             )
     finally:
+        # Always release lock on exit (normal or abnormal)
         release_lock(LOCK_FILE)

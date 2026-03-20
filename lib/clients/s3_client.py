@@ -61,7 +61,6 @@ class S3Client:
         self._client.download_file(self._bucket, key, str(dest))
         logger.info("Downloaded s3://%s/%s -> %s", self._bucket, key, dest)
 
-
     def list_objects(self, prefix: Optional[str] = None) -> List[str]:
         """List object keys under prefix. Returns list of keys."""
         prefix = prefix or self._prefix

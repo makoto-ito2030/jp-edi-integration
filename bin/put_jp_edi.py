@@ -52,7 +52,7 @@ if __name__ == "__main__":
         if result is None:
             logging.info("No records to send. Exiting.")
             sys.exit(0)
-        csv_path, hawb_nos = result
+        csv_path, hawb_nos, size_warnings = result
 
         # Step 2: put_outbox のCSVをSFTPでJPサーバへPUT → 成功時は put_backup へ移動
         if SFTP_PUT_ENABLED:
@@ -68,6 +68,17 @@ if __name__ == "__main__":
             backup_csv(BACKUP_DIR)
         else:
             logging.info("S3 backup skipped (disabled).")
+
+        # Step 5: サイズコード未解決レコードがあればまとめて1件メール通知
+        if size_warnings and MAIL_ENABLED:
+            send_error_mail(
+                subject="[WARN] put_jp_edi サイズコード未解決レコードあり",
+                body=(
+                    f"サイズコードを解決できなかったレコードが {len(size_warnings)} 件あります。\n"
+                    "サイズ項目（No.27）はブランクで送信しました。\n\n"
+                    + "\n".join(size_warnings)
+                ),
+            )
 
     except Exception:
         logging.exception("Batch failed.")

@@ -73,8 +73,6 @@ class DBClient:
             self._conn.commit()
             return cursor.fetchall()
 
-
-
     def executemany(self, sql: str, params: List[Tuple]) -> None:
         """Execute SQL with multiple parameter sets (e.g. bulk INSERT)."""
         try:

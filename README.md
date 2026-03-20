@@ -23,6 +23,8 @@
 │   ├── lock_manager.py             # ロックファイルによる二重起動防止
 │   ├── mail_client.py              # エラーメール送信クライアント
 │   └── get_jp_track/
+│       ├── fetch_csv.py            # SFTPで追跡CSVを取得
+│       ├── process_csv.py          # 1ファイル処理ロジック
 │       ├── progress_manager.py     # GETバッチ進捗管理
 │       ├── check_track_csv.py      # 追跡CSVフォーマットチェック
 │       ├── parse_track_csv.py      # 追跡CSVパース・変換

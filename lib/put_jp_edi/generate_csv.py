@@ -47,16 +47,22 @@ def _load_jp_edi_config() -> dict:
     }
 
 
-def _resolve_size_code(length, width, height) -> str:
-    """Calculate size code from 3 dimensions (cm)."""
+def _resolve_size_code(length, width, height) -> Optional[str]:
+    """
+    Calculate size code from 3 dimensions (cm).
+    Returns size code string, or None if dimensions are missing/invalid.
+    """
     try:
-        total = int(length or 0) + int(width or 0) + int(height or 0)
+        l, w, h = int(length or 0), int(width or 0), int(height or 0)
     except (TypeError, ValueError):
-        return ""
+        return None
+    if l == 0 and w == 0 and h == 0:
+        return None
+    total = l + w + h
     for threshold, code in _SIZE_THRESHOLDS:
         if total <= threshold:
             return code
-    return "170"
+    return "170"  # 170cm超：最大サイズコードで送信
 
 
 def _fetch_rows(db: DBClient, tracking_no_prefix: str) -> List[Dict]:
@@ -81,10 +87,19 @@ def _fetch_rows(db: DBClient, tracking_no_prefix: str) -> List[Dict]:
     return db.execute(sql, (f"{tracking_no_prefix}%",))
 
 
-def _build_row(row: Dict, conf: dict) -> List[str]:
+def _build_row(row: Dict, conf: dict, size_warnings: List[str]) -> List[str]:
     """Build a single DENFD CSV row (50 fields) from a goods_hawb record."""
     s = sanitize
     blank = ""
+
+    size_code = _resolve_size_code(row.get("length"), row.get("width"), row.get("height"))
+    if size_code is None:
+        size_code = blank
+        size_warnings.append(
+            f"hawb_no={row.get('hawb_no')} "
+            f"length={row.get('length')} width={row.get('width')} height={row.get('height')}"
+        )
+
     return [
         "DENKAKUTEI",                                            # 1  予約・確定識別コード
         blank,                                                   # 2  発送(予定)日
@@ -112,9 +127,7 @@ def _build_row(row: Dict, conf: dict) -> List[str]:
         blank,                                                   # 24 品名２
         blank,                                                   # 25 品名３
         blank,                                                   # 26 損害要償額
-        _resolve_size_code(                                      # 27 サイズ
-            row.get("length"), row.get("width"), row.get("height")
-        ),
+        size_code,                                               # 27 サイズ
         blank,                                                   # 28 記事１
         blank,                                                   # 29 記事２
         blank,                                                   # 30 発送会社コード
@@ -141,10 +154,11 @@ def _build_row(row: Dict, conf: dict) -> List[str]:
     ]
 
 
-def generate_csv(outbox_dir: Path) -> Optional[Tuple[Path, List[str]]]:
+def generate_csv(outbox_dir: Path) -> Optional[Tuple[Path, List[str], List[str]]]:
     """
     Fetch records from DB and generate DENFD CSV in outbox_dir.
-    Returns (output file path, list of hawb_no), or None if no records found.
+    Returns (output file path, list of hawb_no, list of size warning messages),
+    or None if no records found.
     """
     conf = _load_jp_edi_config()
     filename = f"put_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
@@ -159,12 +173,16 @@ def generate_csv(outbox_dir: Path) -> Optional[Tuple[Path, List[str]]]:
 
     logger.info("Fetched %d record(s) from DB.", len(rows))
 
+    size_warnings: List[str] = []
     with output_path.open("w", encoding="utf-8", newline="") as f:
         writer = csv.writer(f, lineterminator="\r\n")
         for row in rows:
-            writer.writerow(_build_row(row, conf))
+            writer.writerow(_build_row(row, conf, size_warnings))
+
+    if size_warnings:
+        logger.warning("Size code could not be resolved for %d record(s).", len(size_warnings))
 
     logger.info("Generated CSV: %s (%d rows)", output_path.name, len(rows))
 
     hawb_nos = [row["hawb_no"] for row in rows if row.get("hawb_no")]
-    return output_path, hawb_nos
+    return output_path, hawb_nos, size_warnings
