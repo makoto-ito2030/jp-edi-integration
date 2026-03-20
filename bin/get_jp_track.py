@@ -2,6 +2,7 @@
 
 import configparser
 import logging
+import traceback
 from datetime import datetime
 from pathlib import Path
 
@@ -12,6 +13,7 @@ from lib.get_jp_track.parse_track_csv import parse_csv
 from lib.lock_manager import acquire_lock, release_lock
 from lib.get_jp_track.progress_manager import GetProgressManager
 from lib.get_jp_track.insert_rows import insert_rows
+from lib.mail_client import send_error_mail
 
 BASE_DIR     = Path(__file__).resolve().parent.parent
 CONFIG_PATH  = BASE_DIR / "config" / "settings.ini"
@@ -22,7 +24,8 @@ LOG_FILE     = BASE_DIR / "logs" / f"get_jp_track_{datetime.now().strftime('%Y%m
 _config = configparser.ConfigParser()
 _config.read(CONFIG_PATH, encoding="utf-8")
 S3_BACKUP_ENABLED = _config.getboolean("feature", "s3_backup_enabled", fallback=True)
-SFTP_GET_ENABLED = _config.getboolean("feature", "sftp_get_enabled", fallback=True)
+SFTP_GET_ENABLED  = _config.getboolean("feature", "sftp_get_enabled",  fallback=True)
+MAIL_ENABLED      = _config.getboolean("feature", "mail_enabled",      fallback=True)
 
 
 def init_env() -> None:
@@ -76,7 +79,7 @@ def process_csv_files() -> None:
 
         # [2] Back up the raw CSV to S3
         if S3_BACKUP_ENABLED:
-            s3 = S3Client("s3_get")
+            s3 = S3Client("s3")
             s3_backup = "ok"
             try:
                 uri = s3.upload(f)
@@ -94,9 +97,13 @@ def process_csv_files() -> None:
             pm.set_format_check("ok")
             logging.info("%s format OK", f.name)
         except ValueError as e:
-            # Record format error in progress file and leave CSV in get_inbox for retry
             pm.set_format_check("ng", str(e))
             logging.error("%s format NG (left in get_inbox for retry): %s", f.name, e)
+            if MAIL_ENABLED:
+                send_error_mail(
+                    subject=f"[ERROR] get_jp_track フォーマットエラー: {f.name}",
+                    body=f"フォーマットチェックでエラーが発生しました。\n\nファイル: {f.name}\nエラー: {e}",
+                )
             continue
 
         # [4] Parse CSV into DB row tuples
@@ -121,12 +128,15 @@ def process_csv_files() -> None:
             logging.info("%s deleted from get_inbox.", f.name)
         else:
             logging.warning("%s left in get_inbox for manual action.", f.name)
-
+            if MAIL_ENABLED:
+                send_error_mail(
+                    subject=f"[ERROR] get_jp_track 処理エラー: {f.name}",
+                    body=f"処理中にエラーが発生しました。手動対応が必要です。\n\nファイル: {f.name}\n進捗ファイル: work/get_progress/{f.name}.progress.json",
+                )
 
 
 if __name__ == "__main__":
     init_env()
-    # Prevent duplicate execution with lock file
     acquire_lock(LOCK_FILE)
     try:
         # Step 1: Download CSV files from JP server via SFTP
@@ -136,6 +146,12 @@ if __name__ == "__main__":
             logging.info("SFTP download skipped (disabled).")
         # Step 2: Validate, parse, and insert each CSV into the DB
         process_csv_files()
+    except Exception:
+        logging.exception("Batch failed.")
+        if MAIL_ENABLED:
+            send_error_mail(
+                subject="[ERROR] get_jp_track バッチエラー",
+                body=f"get_jp_track バッチでエラーが発生しました。\n\n{traceback.format_exc()}",
+            )
     finally:
-        # Always release lock on exit (normal or abnormal)
         release_lock(LOCK_FILE)

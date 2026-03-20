@@ -2,3 +2,6 @@
 config/settings.ini
 .DS_Store
 logs/
+__pycache__/
+*.pyc
+

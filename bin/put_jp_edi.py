@@ -1,22 +1,37 @@
 """JP EDI - PUT batch for shipping CSV."""
 
+import configparser
 import logging
-import shutil
 import sys
+import traceback
+from datetime import datetime
 from pathlib import Path
 
-from lib.clients.s3_client import S3Client
-from lib.clients.sftp_client import SFTPClient
+from lib.lock_manager import acquire_lock, release_lock
+from lib.mail_client import send_error_mail
+from lib.put_jp_edi.generate_csv import generate_csv
+from lib.put_jp_edi.send_csv import send_csv
+from lib.put_jp_edi.update_jp_download import update_jp_download
+from lib.put_jp_edi.backup_csv import backup_csv
 
-BASE_DIR   = Path(__file__).resolve().parent.parent
-OUTBOX_DIR = BASE_DIR / "work" / "put_outbox"
-ERROR_DIR  = BASE_DIR / "work" / "put_error"
-LOG_FILE   = BASE_DIR / "logs" / "put_jp_edi.log"
+BASE_DIR    = Path(__file__).resolve().parent.parent
+CONFIG_PATH = BASE_DIR / "config" / "settings.ini"
+OUTBOX_DIR  = BASE_DIR / "work" / "put_outbox"
+BACKUP_DIR  = BASE_DIR / "work" / "put_backup"
+ERROR_DIR   = BASE_DIR / "work" / "put_error"
+LOCK_FILE   = BASE_DIR / "work" / "put_jp_edi.lock"
+LOG_FILE    = BASE_DIR / "logs" / f"put_jp_edi_{datetime.now().strftime('%Y%m')}.log"
+
+_config = configparser.ConfigParser()
+_config.read(CONFIG_PATH, encoding="utf-8")
+SFTP_PUT_ENABLED  = _config.getboolean("feature", "sftp_put_enabled",  fallback=True)
+S3_BACKUP_ENABLED = _config.getboolean("feature", "s3_backup_enabled", fallback=True)
+MAIL_ENABLED      = _config.getboolean("feature", "mail_enabled",      fallback=True)
 
 
 def init_env() -> None:
     # Create working directories and initialize logger
-    for d in (OUTBOX_DIR, ERROR_DIR, LOG_FILE.parent):
+    for d in (OUTBOX_DIR, BACKUP_DIR, ERROR_DIR, LOG_FILE.parent):
         d.mkdir(parents=True, exist_ok=True)
     logging.basicConfig(
         level=logging.INFO,
@@ -28,44 +43,39 @@ def init_env() -> None:
     )
 
 
-def download_csv_from_s3() -> None:
-    # Download CSV files from S3 to put_outbox
-    s3 = S3Client("s3_put")
-    keys = s3.list_objects()
-    csv_keys = [k for k in keys if k.endswith(".csv")]
-    if not csv_keys:
-        logging.info("No CSV files found in S3.")
-        return
-    logging.info("Found %d CSV file(s) in S3.", len(csv_keys))
-    for key in csv_keys:
-        name = key.split("/")[-1]
-        s3.download(key, OUTBOX_DIR / name)
-        logging.info("%s -> put_outbox", name)
-
-
-def send_csv_to_jp() -> None:
-    # Send all CSV files in put_outbox to JP server via SFTP
-    files = sorted(OUTBOX_DIR.glob("*.csv"))
-    if not files:
-        logging.info("No CSV files to send.")
-        return
-    logging.info("Found %d CSV file(s) in put_outbox.", len(files))
-
-    with SFTPClient() as client:
-        for f in files:
-            try:
-                client.put(f)
-                f.unlink()
-                logging.info("%s sent and deleted.", f.name)
-            except Exception:
-                shutil.move(str(f), ERROR_DIR / f.name)
-                logging.exception("%s -> put_error. Exiting.", f.name)
-                sys.exit(1)
-
-
 if __name__ == "__main__":
     init_env()
-    # Step 1: Download CSV files from S3 to put_outbox
-    download_csv_from_s3()
-    # Step 2: Send CSV files to JP server via SFTP
-    send_csv_to_jp()
+    acquire_lock(LOCK_FILE)
+    try:
+        # Step 1: DBから出荷CSVを生成し put_outbox に配置
+        result = generate_csv(OUTBOX_DIR)
+        if result is None:
+            logging.info("No records to send. Exiting.")
+            sys.exit(0)
+        csv_path, hawb_nos = result
+
+        # Step 2: put_outbox のCSVをSFTPでJPサーバへPUT → 成功時は put_backup へ移動
+        if SFTP_PUT_ENABLED:
+            send_csv(OUTBOX_DIR, BACKUP_DIR, ERROR_DIR)
+        else:
+            logging.info("SFTP upload skipped (disabled).")
+
+        # Step 3: goods_hawb_ext.jp_download を更新
+        update_jp_download(hawb_nos)
+
+        # Step 4: put_backup のCSVをS3へバックアップ → 成功時はファイル削除
+        if S3_BACKUP_ENABLED:
+            backup_csv(BACKUP_DIR)
+        else:
+            logging.info("S3 backup skipped (disabled).")
+
+    except Exception:
+        logging.exception("Batch failed.")
+        if MAIL_ENABLED:
+            send_error_mail(
+                subject="[ERROR] put_jp_edi バッチエラー",
+                body=f"put_jp_edi バッチでエラーが発生しました。\n\n{traceback.format_exc()}",
+            )
+        sys.exit(1)
+    finally:
+        release_lock(LOCK_FILE)

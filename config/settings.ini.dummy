@@ -6,13 +6,9 @@ password    = dummy_password
 put_dir     = /edi/inbound
 get_dir     = /edi/outbound
 
-[s3_get]
+[s3]
 bucket      = dummy-bucket-name
-prefix      = edi/input/
-
-[s3_put]
-bucket      = dummy-bucket-name
-prefix      = edi/output/
+prefix      = edi/
 
 [db]
 host        = dummy-rds-endpoint.rds.amazonaws.com
@@ -22,6 +18,25 @@ password    = dummy_password
 database    = dummy_database
 strict_mode = true
 
+[jp_edi]
+biz_card_no         = 00000000000000000000000000000000
+tracking_no_prefix  = 1234
+shipper_name        = dummy_name
+shipper_tel         = 0000000000
+shipper_postal_code = 0000000
+shipper_address     = dummy_address
+
 [feature]
 s3_backup_enabled = true
-sftp_get_enabled = true
+sftp_get_enabled  = true
+sftp_put_enabled  = true
+mail_enabled      = true
+
+[mail]
+host     = dummy-smtp-host.example.com
+port     = 25
+from     = batch@example.com
+to       = alert@example.com
+user     =
+password =
+use_tls  = false

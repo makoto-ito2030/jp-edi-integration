@@ -21,11 +21,18 @@
 │   │   ├── s3_client.py            # S3クライアント
 │   │   └── db_client.py            # DBクライアント（RDS/MySQL）
 │   ├── lock_manager.py             # ロックファイルによる二重起動防止
+│   ├── mail_client.py              # エラーメール送信クライアント
 │   └── get_jp_track/
 │       ├── progress_manager.py     # GETバッチ進捗管理
 │       ├── check_track_csv.py      # 追跡CSVフォーマットチェック
 │       ├── parse_track_csv.py      # 追跡CSVパース・変換
 │       └── insert_rows.py          # 重複チェック・バルクINSERTロジック
+│   └── put_jp_edi/
+│       ├── generate_csv.py         # DB抽出・CSV生成ロジック
+│       ├── send_csv.py             # SFTPでJPサーバへ送信
+│       ├── update_jp_download.py   # jp_download更新ロジック
+│       ├── backup_csv.py           # S3バックアップロジック
+│       └── sanitize.py             # 禁則文字サニタイズ
 │
 ├── work/
 │   ├── put_outbox/                 # PUT用 送信前CSV
@@ -80,6 +87,7 @@ database    = dummy_database
 
 [jp_edi]
 biz_card_no         = 00000000000000000000000000000000  # ゆうびんビズカードお客さま番号（32桁）
+tracking_no_prefix  = 1234                              # 追跡番号プレフィックス
 shipper_name        = dummy_name                        # ご依頼主名
 shipper_tel         = 0000000000                        # ご依頼主電話番号
 shipper_postal_code = 0000000                           # ご依頼主郵便番号（7桁、ハイフンなし）
@@ -89,6 +97,16 @@ shipper_address     = dummy_address                     # ご依頼主住所
 s3_backup_enabled = true
 sftp_get_enabled  = true
 sftp_put_enabled  = true
+mail_enabled      = true
+
+[mail]
+host     = dummy-smtp-host.example.com
+port     = 25
+from     = batch@example.com
+to       = alert@example.com
+user     =
+password =
+use_tls  = false
 ```
 
 ## 実行方法と処理概要

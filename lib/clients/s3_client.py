@@ -30,9 +30,9 @@ def _load_s3_config(section: str) -> dict:
 
 
 class S3Client:
-    def __init__(self, section: str = "s3_get") -> None:
+    def __init__(self, section: str = "s3") -> None:
         """
-        section: config section name ("s3_get" or "s3_put")
+        section: config section name (default: "s3")
         """
         conf = _load_s3_config(section)
         self._bucket = conf["bucket"]
