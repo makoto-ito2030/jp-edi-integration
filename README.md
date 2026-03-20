@@ -29,6 +29,7 @@
 │
 ├── work/
 │   ├── put_outbox/                 # PUT用 送信前CSV
+│   ├── put_backup/                 # PUT成功・S3バックアップ待ちCSV
 │   ├── put_error/                  # PUT失敗CSV
 │   ├── get_inbox/                  # GET用 取得した追跡CSV
 │   ├── get_progress/               # GET処理中の進捗ファイル（処理済み行数・エラー行記録）
@@ -98,10 +99,15 @@ python -m bin.put_jp_edi
 ```
 1. DBから出荷CSVを生成し、`work/put_outbox` に配置
 2. `work/put_outbox` のCSVをSFTPでJPサーバへPUT
-3. 成功時：S3へバックアップ、ローカルファイルを削除、`goods_hawb_ext.jp_download` を更新、ログに成功を出力
-4. 失敗時：`work/put_error` へ移動、ログにエラーを出力して終了
+3. PUT成功時：`work/put_outbox` から `work/put_backup` へ移動、`goods_hawb_ext.jp_download` を更新、ログに成功を出力
+4. PUT失敗時：`work/put_error` へ移動、ログにエラーを出力して終了
+5. `work/put_backup` のCSVをS3へバックアップ
+6. S3バックアップ成功時：`work/put_backup` からファイル削除
+7. S3バックアップ失敗時：`work/put_backup` にファイルを残す、次回起動時にリトライ
 
-再実行時はDBから再度CSVを生成する。`work/put_error` に残ったファイルはログと照合した原因調査用であり、再実行には使用しない。
+想定されるエラーはDB接続エラー・SFTPエラー・S3エラー。
+
+再実行時は `work/put_error` のファイルは使用せず、その時点のDBから再度CSVを生成する。これにより常に最新のデータで送信できる。`work/put_error` に残ったファイルはログと照合した原因調査用。
 
 ### GETバッチ
 ```bash
