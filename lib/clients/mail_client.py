@@ -9,7 +9,7 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "settings.ini"
+CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / "config" / "settings.ini"
 
 
 def _load_mail_config() -> dict:
@@ -55,3 +55,12 @@ def send_error_mail(subject: str, body: str) -> None:
         logger.info("Error mail sent: %s", subject)
     except Exception:
         logger.exception("Failed to send error mail.")
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+    send_error_mail(
+        subject="[TEST] mail_client test",
+        body="This is a test email from mail_client.py.",
+    )
+    print("Done.")

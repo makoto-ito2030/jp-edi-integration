@@ -19,9 +19,9 @@
 │   ├── clients/
 │   │   ├── sftp_client.py          # SFTPクライアント
 │   │   ├── s3_client.py            # S3クライアント
-│   │   └── db_client.py            # DBクライアント（RDS/MySQL）
+│   │   ├── db_client.py            # DBクライアント（RDS/MySQL）
+│   │   └── mail_client.py          # エラーメール送信クライアント
 │   ├── lock_manager.py             # ロックファイルによる二重起動防止
-│   ├── mail_client.py              # エラーメール送信クライアント
 │   └── get_jp_track/
 │       ├── fetch_csv.py            # SFTPで追跡CSVを取得
 │       ├── process_csv.py          # 1ファイル処理ロジック

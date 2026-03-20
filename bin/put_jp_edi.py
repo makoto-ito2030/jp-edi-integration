@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import List, Tuple
 
 from lib.lock_manager import acquire_lock, release_lock
-from lib.mail_client import send_error_mail
+from lib.clients.mail_client import send_error_mail
 from lib.put_jp_edi.generate_csv import generate_csv
 from lib.put_jp_edi.send_csv import send_csv
 from lib.put_jp_edi.update_jp_download import update_jp_download

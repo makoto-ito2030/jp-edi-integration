@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 from lib.lock_manager import acquire_lock, release_lock
-from lib.mail_client import send_error_mail
+from lib.clients.mail_client import send_error_mail
 from lib.get_jp_track.fetch_csv import fetch_csv
 from lib.get_jp_track.process_csv import process_csv
 
