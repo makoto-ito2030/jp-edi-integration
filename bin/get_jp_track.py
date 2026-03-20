@@ -6,7 +6,7 @@ import traceback
 from datetime import datetime
 from pathlib import Path
 
-from lib.lock_manager import acquire_lock, release_lock
+from lib.lock_manager import acquire_lock, release_lock, LockError
 from lib.clients.mail_client import send_error_mail
 from lib.get_jp_track.fetch_csv import fetch_csv
 from lib.get_jp_track.process_csv import process_csv
@@ -87,11 +87,22 @@ def step3_process_csv_files() -> None:
 
 if __name__ == "__main__":
     init_env()
-    step1_prevent_duplicate_execution()
     try:
+        step1_prevent_duplicate_execution()
         step2_fetch_csv()
         step3_process_csv_files()
 
+    except LockError:
+        logging.critical("Duplicate execution detected. Exiting.")
+        if MAIL_ENABLED:
+            send_error_mail(
+                subject="[ERROR] get_jp_track: lock file exists",
+                body=(
+                    "get_jp_track could not start because the lock file already exists.\n\n"
+                    f"Lock file: {LOCK_FILE}\n\n"
+                    "If no other process is running, remove the lock file manually and re-run."
+                ),
+            )
     except Exception:
         logging.exception("Batch failed.")
         if MAIL_ENABLED:

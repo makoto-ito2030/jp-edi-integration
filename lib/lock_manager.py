@@ -2,11 +2,14 @@
 
 import logging
 import os
-import sys
 from datetime import datetime
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+
+class LockError(Exception):
+    """Raised when a lock file already exists (duplicate execution detected)."""
 
 
 def _now_str() -> str:
@@ -14,12 +17,12 @@ def _now_str() -> str:
 
 
 def acquire_lock(lock_file: Path) -> None:
-    """Prevent duplicate execution. Exit if lock file exists."""
+    """Prevent duplicate execution. Raises LockError if lock file exists."""
     if lock_file.exists():
         logger.critical(
             "Another process is running (lock file exists: %s). Exiting.", lock_file
         )
-        sys.exit(1)
+        raise LockError(f"Lock file already exists: {lock_file}")
     lock_file.write_text(f"{os.getpid()}\n{_now_str()}\n", encoding="utf-8")
     logger.info("Lock acquired: %s", lock_file)
 

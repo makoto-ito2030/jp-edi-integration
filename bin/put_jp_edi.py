@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Tuple
 
-from lib.lock_manager import acquire_lock, release_lock
+from lib.lock_manager import acquire_lock, release_lock, LockError
 from lib.clients.mail_client import send_error_mail
 from lib.put_jp_edi.generate_csv import generate_csv
 from lib.put_jp_edi.send_csv import send_csv
@@ -94,14 +94,25 @@ def step6_notify_size_warnings(size_warnings: List[str]) -> None:
 
 if __name__ == "__main__":
     init_env()
-    step1_prevent_duplicate_execution()
     try:
+        step1_prevent_duplicate_execution()
         csv_path, hawb_nos, size_warnings = step2_generate_csv()
         step3_send_csv()
         step4_update_jp_download(hawb_nos)
         step5_backup_csv()
         step6_notify_size_warnings(size_warnings)
 
+    except LockError:
+        logging.critical("Duplicate execution detected. Exiting.")
+        if MAIL_ENABLED:
+            send_error_mail(
+                subject="[ERROR] put_jp_edi: lock file exists",
+                body=(
+                    "put_jp_edi could not start because the lock file already exists.\n\n"
+                    f"Lock file: {LOCK_FILE}\n\n"
+                    "If no other process is running, remove the lock file manually and re-run."
+                ),
+            )
     except Exception:
         logging.exception("Batch failed.")
         if MAIL_ENABLED:
