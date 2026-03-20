@@ -9,7 +9,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-# 追跡番号, 取扱局／支店名, 取扱日時, ステータスコード, ステータス
+# Columns: tracking_no, store_name, handling_datetime, status_code, status
 EXPECTED_COLUMNS = 5
 
 def validate_file(filepath):

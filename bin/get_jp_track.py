@@ -41,52 +41,63 @@ def init_env() -> None:
 def _on_format_error(filename: str, error: Exception) -> None:
     if MAIL_ENABLED:
         send_error_mail(
-            subject=f"[ERROR] get_jp_track フォーマットエラー: {filename}",
-            body=f"フォーマットチェックでエラーが発生しました。\n\nファイル: {filename}\nエラー: {error}",
+            subject=f"[ERROR] get_jp_track: format error in {filename}",
+            body=f"Format check failed.\n\nFile: {filename}\nError: {error}",
         )
 
 
 def _on_complete_with_error(filename: str) -> None:
     if MAIL_ENABLED:
         send_error_mail(
-            subject=f"[ERROR] get_jp_track 処理エラー: {filename}",
-            body=f"処理中にエラーが発生しました。手動対応が必要です。\n\nファイル: {filename}\n進捗ファイル: work/get_progress/{filename}.progress.json",
+            subject=f"[ERROR] get_jp_track: processing error in {filename}",
+            body=f"Processing completed with errors. Manual action required.\n\nFile: {filename}\nProgress file: work/get_progress/{filename}.progress.json",
+        )
+
+
+def step1_prevent_duplicate_execution() -> None:
+    """Prevent duplicate execution using a lock file."""
+    acquire_lock(LOCK_FILE)
+
+
+def step2_fetch_csv() -> None:
+    """Fetch tracking CSV files from JP server via SFTP and save to get_inbox."""
+    if SFTP_GET_ENABLED:
+        fetch_csv(INBOX_DIR)
+    else:
+        logging.info("SFTP download skipped (disabled).")
+
+
+def step3_process_csv_files() -> None:
+    """Process each CSV file in get_inbox sequentially.
+    For each file:
+      - Initialize or resume progress file
+      - Back up to S3
+      - Validate format
+      - Parse, dedup check, and bulk INSERT
+      - Clean up on completion
+    """
+    for f in sorted(INBOX_DIR.glob("*.csv")):
+        process_csv(
+            f,
+            s3_backup_enabled=S3_BACKUP_ENABLED,
+            on_format_error=_on_format_error,
+            on_complete_with_error=_on_complete_with_error,
         )
 
 
 if __name__ == "__main__":
     init_env()
-
-    # Step 1: ロックファイルで二重起動を防止
-    acquire_lock(LOCK_FILE)
+    step1_prevent_duplicate_execution()
     try:
-        # Step 2: JPサーバから追跡CSVをSFTPで取得し get_inbox に保存
-        if SFTP_GET_ENABLED:
-            fetch_csv(INBOX_DIR)
-        else:
-            logging.info("SFTP download skipped (disabled).")
-
-        # Step 3: get_inbox のCSVを1件ずつ処理
-        #   - 進捗ファイル作成／再開
-        #   - S3バックアップ
-        #   - フォーマットチェック
-        #   - パース・重複チェック・バルクINSERT
-        #   - 完走後クリーンアップ
-        for f in sorted(INBOX_DIR.glob("*.csv")):
-            process_csv(
-                f,
-                s3_backup_enabled=S3_BACKUP_ENABLED,
-                on_format_error=_on_format_error,
-                on_complete_with_error=_on_complete_with_error,
-            )
+        step2_fetch_csv()
+        step3_process_csv_files()
 
     except Exception:
         logging.exception("Batch failed.")
         if MAIL_ENABLED:
             send_error_mail(
-                subject="[ERROR] get_jp_track バッチエラー",
-                body=f"get_jp_track バッチでエラーが発生しました。\n\n{traceback.format_exc()}",
+                subject="[ERROR] get_jp_track batch failed",
+                body=f"An error occurred in get_jp_track batch.\n\n{traceback.format_exc()}",
             )
     finally:
-        # Always release lock on exit (normal or abnormal)
         release_lock(LOCK_FILE)

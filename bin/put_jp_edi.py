@@ -6,6 +6,7 @@ import sys
 import traceback
 from datetime import datetime
 from pathlib import Path
+from typing import List, Tuple
 
 from lib.lock_manager import acquire_lock, release_lock
 from lib.mail_client import send_error_mail
@@ -43,49 +44,70 @@ def init_env() -> None:
     )
 
 
+def step1_prevent_duplicate_execution() -> None:
+    """Prevent duplicate execution using a lock file."""
+    acquire_lock(LOCK_FILE)
+
+
+def step2_generate_csv() -> Tuple[Path, List[str], List[str]]:
+    """Generate DENFD CSV from DB and place it in put_outbox. Exit if no records."""
+    result = generate_csv(OUTBOX_DIR)
+    if result is None:
+        logging.info("No records to send. Exiting.")
+        sys.exit(0)
+    return result
+
+
+def step3_send_csv() -> None:
+    """Send CSV in put_outbox to JP server via SFTP. On success, move to put_backup."""
+    if SFTP_PUT_ENABLED:
+        send_csv(OUTBOX_DIR, BACKUP_DIR, ERROR_DIR)
+    else:
+        logging.info("SFTP upload skipped (disabled).")
+
+
+def step4_update_jp_download(hawb_nos: List[str]) -> None:
+    """Update goods_hawb_ext.jp_download to 1 for sent records."""
+    update_jp_download(hawb_nos)
+
+
+def step5_backup_csv() -> None:
+    """Upload CSV in put_backup to S3. On success, delete local file."""
+    if S3_BACKUP_ENABLED:
+        backup_csv(BACKUP_DIR)
+    else:
+        logging.info("S3 backup skipped (disabled).")
+
+
+def step6_notify_size_warnings(size_warnings: List[str]) -> None:
+    """Send a single warning email if any records had unresolvable size codes."""
+    if size_warnings and MAIL_ENABLED:
+        send_error_mail(
+            subject="[WARN] put_jp_edi: unresolvable size code(s) found",
+            body=(
+                f"{len(size_warnings)} record(s) had unresolvable size codes.\n"
+                "Field No.27 (size) was sent as blank.\n\n"
+                + "\n".join(size_warnings)
+            ),
+        )
+
+
 if __name__ == "__main__":
     init_env()
-    acquire_lock(LOCK_FILE)
+    step1_prevent_duplicate_execution()
     try:
-        # Step 1: DBから出荷CSVを生成し put_outbox に配置
-        result = generate_csv(OUTBOX_DIR)
-        if result is None:
-            logging.info("No records to send. Exiting.")
-            sys.exit(0)
-        csv_path, hawb_nos, size_warnings = result
-
-        # Step 2: put_outbox のCSVをSFTPでJPサーバへPUT → 成功時は put_backup へ移動
-        if SFTP_PUT_ENABLED:
-            send_csv(OUTBOX_DIR, BACKUP_DIR, ERROR_DIR)
-        else:
-            logging.info("SFTP upload skipped (disabled).")
-
-        # Step 3: goods_hawb_ext.jp_download を更新
-        update_jp_download(hawb_nos)
-
-        # Step 4: put_backup のCSVをS3へバックアップ → 成功時はファイル削除
-        if S3_BACKUP_ENABLED:
-            backup_csv(BACKUP_DIR)
-        else:
-            logging.info("S3 backup skipped (disabled).")
-
-        # Step 5: サイズコード未解決レコードがあればまとめて1件メール通知
-        if size_warnings and MAIL_ENABLED:
-            send_error_mail(
-                subject="[WARN] put_jp_edi サイズコード未解決レコードあり",
-                body=(
-                    f"サイズコードを解決できなかったレコードが {len(size_warnings)} 件あります。\n"
-                    "サイズ項目（No.27）はブランクで送信しました。\n\n"
-                    + "\n".join(size_warnings)
-                ),
-            )
+        csv_path, hawb_nos, size_warnings = step2_generate_csv()
+        step3_send_csv()
+        step4_update_jp_download(hawb_nos)
+        step5_backup_csv()
+        step6_notify_size_warnings(size_warnings)
 
     except Exception:
         logging.exception("Batch failed.")
         if MAIL_ENABLED:
             send_error_mail(
-                subject="[ERROR] put_jp_edi バッチエラー",
-                body=f"put_jp_edi バッチでエラーが発生しました。\n\n{traceback.format_exc()}",
+                subject="[ERROR] put_jp_edi batch failed",
+                body=f"An error occurred in put_jp_edi batch.\n\n{traceback.format_exc()}",
             )
         sys.exit(1)
     finally:

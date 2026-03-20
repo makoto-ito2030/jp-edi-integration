@@ -62,7 +62,7 @@ def _resolve_size_code(length, width, height) -> Optional[str]:
     for threshold, code in _SIZE_THRESHOLDS:
         if total <= threshold:
             return code
-    return "170"  # 170cm超：最大サイズコードで送信
+    return "170"  # over 170cm: use max size code
 
 
 def _fetch_rows(db: DBClient, tracking_no_prefix: str) -> List[Dict]:
@@ -73,7 +73,7 @@ def _fetch_rows(db: DBClient, tracking_no_prefix: str) -> List[Dict]:
         LEFT JOIN goods_hawb_ext e ON g.hawb_no = e.hawb_no
         WHERE (
             (g.tracking_no LIKE %s)
-            OR (g.tracking_no IS NULL AND g.shipping_club = 'ゆうパック')
+            OR (g.tracking_no IS NULL AND g.shipping_club = 'Yu-Pack')
         )
         AND g.customs_permit_time IS NOT NULL
         AND g.move_out_time IS NOT NULL
@@ -101,56 +101,56 @@ def _build_row(row: Dict, conf: dict, size_warnings: List[str]) -> List[str]:
         )
 
     return [
-        "DENKAKUTEI",                                            # 1  予約・確定識別コード
-        blank,                                                   # 2  発送(予定)日
-        blank,                                                   # 3  発送時刻
-        "101",                                                   # 4  商品種別コード（ゆうパック）
-        blank,                                                   # 5  注意コード
-        blank,                                                   # 6  伝票個数
-        s(row.get("tracking_no") or blank),                      # 7  お問い合わせ番号
-        s(row.get("hawb_no") or blank),                          # 8  お客様側管理番号
-        blank,                                                   # 9  複数個口代表お問い合わせ番号
-        conf["biz_card_no"],                                     # 10 ゆうびんビズカードお客さま番号
-        conf["shipper_name"],                                    # 11 ご依頼主名
-        conf["shipper_tel"],                                     # 12 ご依頼主電話番号
-        conf["shipper_postal_code"],                             # 13 ご依頼主郵便番号
-        conf["shipper_address"],                                 # 14 ご依頼主住所
-        s(row.get("consignee_name") or blank),                   # 15 お届け先名
-        s(row.get("consignee_tel") or blank),                    # 16 お届け先電話番号
-        s(row.get("consignee_postal_code") or blank),            # 17 お届け先郵便番号
-        s(row.get("consignee_address_full") or blank),           # 18 お届け先住所
-        blank,                                                   # 19 お届け希望年月日
-        blank,                                                   # 20 お届け希望時間帯
-        blank,                                                   # 21 代金引換金額
-        blank,                                                   # 22 消費税額等
-        blank,                                                   # 23 品名１
-        blank,                                                   # 24 品名２
-        blank,                                                   # 25 品名３
-        blank,                                                   # 26 損害要償額
-        size_code,                                               # 27 サイズ
-        blank,                                                   # 28 記事１
-        blank,                                                   # 29 記事２
-        blank,                                                   # 30 発送会社コード
-        blank,                                                   # 31 発送局コード
-        "0",                                                     # 32 配達予告メールサービス
-        "0",                                                     # 33 配達完了メールサービス
-        "0",                                                     # 34 不在持戻メールサービス
-        "0",                                                     # 35 郵便局留めメールサービス
-        blank,                                                   # 36 配達予告通知先メールアドレス
-        blank,                                                   # 37 配達完了通知先メールアドレス
-        blank,                                                   # 38 不在持戻通知先メールアドレス
-        blank,                                                   # 39 郵便局留め通知先メールアドレス
-        blank,                                                   # 40 配達希望日前倒し
-        blank,                                                   # 41 商品表示
-        blank,                                                   # 42 自由使用欄
-        blank,                                                   # 43 要申込項目
-        blank,                                                   # 44 要申込項目
-        blank,                                                   # 45 要申込項目
-        blank,                                                   # 46 要申込項目
-        blank,                                                   # 47 要申込項目
-        blank,                                                   # 48 要申込項目
-        blank,                                                   # 49 要申込項目
-        blank,                                                   # 50 予備
+        "DENKAKUTEI",                                            # 1
+        blank,                                                   # 2
+        blank,                                                   # 3
+        "101",                                                   # 4
+        blank,                                                   # 5
+        blank,                                                   # 6
+        s(row.get("tracking_no") or blank),                      # 7
+        s(row.get("hawb_no") or blank),                          # 8
+        blank,                                                   # 9
+        conf["biz_card_no"],                                     # 10
+        conf["shipper_name"],                                    # 11
+        conf["shipper_tel"],                                     # 12
+        conf["shipper_postal_code"],                             # 13
+        conf["shipper_address"],                                 # 14
+        s(row.get("consignee_name") or blank),                   # 15
+        s(row.get("consignee_tel") or blank),                    # 16
+        s(row.get("consignee_postal_code") or blank),            # 17
+        s(row.get("consignee_address_full") or blank),           # 18
+        blank,                                                   # 19
+        blank,                                                   # 20
+        blank,                                                   # 21
+        blank,                                                   # 22
+        blank,                                                   # 23
+        blank,                                                   # 24
+        blank,                                                   # 25
+        blank,                                                   # 26
+        size_code,                                               # 27
+        blank,                                                   # 28
+        blank,                                                   # 29
+        blank,                                                   # 30
+        blank,                                                   # 31
+        "0",                                                     # 32
+        "0",                                                     # 33
+        "0",                                                     # 34
+        "0",                                                     # 35
+        blank,                                                   # 36
+        blank,                                                   # 37
+        blank,                                                   # 38
+        blank,                                                   # 39
+        blank,                                                   # 40
+        blank,                                                   # 41
+        blank,                                                   # 42
+        blank,                                                   # 43
+        blank,                                                   # 44
+        blank,                                                   # 45
+        blank,                                                   # 46
+        blank,                                                   # 47
+        blank,                                                   # 48
+        blank,                                                   # 49
+        blank,                                                   # 50
     ]
 
 
