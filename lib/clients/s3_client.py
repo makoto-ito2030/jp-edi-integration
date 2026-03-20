@@ -26,18 +26,19 @@ def _load_s3_config(section: str) -> dict:
     return {
         "bucket": s3["bucket"],
         "prefix": s3["prefix"],
+        "region": s3.get("region", "ap-northeast-1"),
     }
 
 
 class S3Client:
-    def __init__(self, section: str = "s3") -> None:
+    def __init__(self, section: str = "s3_get") -> None:
         """
-        section: config section name (default: "s3")
+        section: config section name ("s3_get" or "s3_put")
         """
         conf = _load_s3_config(section)
         self._bucket = conf["bucket"]
         self._prefix = conf["prefix"]
-        self._client = boto3.client("s3")
+        self._client = boto3.client("s3", region_name=conf["region"])
         logger.info("S3Client initialized: section=%s bucket=%s prefix=%s",
                     section, self._bucket, self._prefix)
 

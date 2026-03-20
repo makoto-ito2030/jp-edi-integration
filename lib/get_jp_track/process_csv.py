@@ -42,7 +42,7 @@ def process_csv(
 
     # [2] Back up the raw CSV to S3
     if s3_backup_enabled:
-        s3 = S3Client("s3")
+        s3 = S3Client("s3_get")
         s3_backup = "ok"
         try:
             uri = s3.upload(f)

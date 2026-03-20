@@ -76,9 +76,15 @@ password    = dummy_password
 put_dir     = /edi/inbound
 get_dir     = /edi/outbound
 
-[s3]
+[s3_put]
 bucket      = dummy-bucket-name
 prefix      = edi/
+region      = ap-northeast-1
+
+[s3_get]
+bucket      = dummy-bucket-name
+prefix      = logistic/
+region      = ap-northeast-1
 
 [db]
 host        = dummy-rds-endpoint.rds.amazonaws.com

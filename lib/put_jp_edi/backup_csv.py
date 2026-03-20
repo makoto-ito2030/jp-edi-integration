@@ -18,7 +18,7 @@ def backup_csv(backup_dir: Path) -> None:
     if not files:
         return
 
-    s3 = S3Client("s3")
+    s3 = S3Client("s3_put")
     for f in files:
         try:
             s3.upload(f)
