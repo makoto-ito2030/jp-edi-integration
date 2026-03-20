@@ -1,8 +1,8 @@
 # JP向けEDI連携バッチ
 
 ## 目的
-- 出荷CSVをJPサーバへPUTするバッチ
-- JPから追跡CSVを取得し、DB更新＋バックアップするバッチ
+- 出荷CSVを生成し、JPサーバへPUTするバッチ
+- JPサーバから追跡CSVを取得し、DB更新＋バックアップするバッチ
 
 ## ディレクトリ構成
 ```
@@ -34,7 +34,7 @@
 │   ├── get_progress/               # GET処理中の進捗ファイル（処理済み行数・エラー行記録）
 │
 └── logs/
-    ├── put_jp_edi.log              # PUTバッチログ
+    ├── put_jp_edi_YYYYMM.log       # PUTバッチログ（月次）
     └── get_jp_track_YYYYMM.log     # GETバッチログ（月次）
 ```
 ※ `work/` と `logs/` はバッチ初回実行時に自動生成される
