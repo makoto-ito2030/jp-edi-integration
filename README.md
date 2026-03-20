@@ -99,15 +99,16 @@ python -m bin.put_jp_edi
 ```
 1. DBから出荷CSVを生成し、`work/put_outbox` に配置
 2. `work/put_outbox` のCSVをSFTPでJPサーバへPUT
-3. PUT成功時：`work/put_outbox` から `work/put_backup` へ移動、`goods_hawb_ext.jp_download` を更新、ログに成功を出力
-4. PUT失敗時：`work/put_error` へ移動、ログにエラーを出力して終了
+3. PUT成功時：`work/put_outbox` から `work/put_backup` へ移動、`goods_hawb_ext.jp_download` を更新
+4. PUT失敗時：`work/put_error` へ移動して終了
 5. `work/put_backup` のCSVをS3へバックアップ
 6. S3バックアップ成功時：`work/put_backup` からファイル削除
 7. S3バックアップ失敗時：`work/put_backup` にファイルを残す、次回起動時にリトライ
 
-想定されるエラーはDB接続エラー・SFTPエラー・S3エラー。
-
-再実行時は `work/put_error` のファイルは使用せず、その時点のDBから再度CSVを生成する。これにより常に最新のデータで送信できる。`work/put_error` に残ったファイルはログと照合した原因調査用。
+#### エラー時の対応
+- DB接続エラー・SFTPエラー発生時は `work/put_error` にファイルが残る
+- 原因解消後はそのまま再実行すればよい（DBから再生成するため `put_error` のファイルは使用しない）
+- `work/put_error` のファイルはログと照合した原因調査用
 
 ### GETバッチ
 ```bash
@@ -123,10 +124,13 @@ python -m bin.get_jp_track
 8. 完走後、エラーなし・S3バックアップOKなら進捗ファイルを削除、`get_inbox` のCSVを削除
 9. 進捗ファイルが残っている場合は手動対応が必要（`work/get_progress/` を確認）
 
-#### GETバッチ：サーバー障害時の再開
-進捗ファイルは処理状況の把握およびサーバー障害時の再開に使用する。重複チェック（`tracking_no + baggage_status + report_date`）により再実行時の重複INSERTは防止されている。
+#### エラー時の対応
+- SFTPエラー・フォーマットNGの場合は `work/get_inbox/` にCSVが残る。原因解消後に再実行すればよい
+- INSERT行エラーは進捗ファイルに記録してスキップ。完走後も `work/get_progress/` に進捗ファイルが残るので手動対応が必要
+- S3バックアップ失敗時は進捗ファイルと `work/get_inbox/` のCSVが残る。S3接続が回復した状態で再実行すると自動でリトライされる
+- サーバー障害時は再起動後にバッチを実行すると進捗ファイルを読み込み自動再開する
 
-処理中にサーバーが停止した場合、`work/get_inbox/` にCSVが残り、`work/get_progress/` に進捗ファイルが残る。再起動後にバッチを実行すると、進捗ファイルを読み込み処理済み行の次から自動的に再開する。
+進捗ファイルは処理状況の把握およびサーバー障害時の再開に使用する。重複チェック（`tracking_no + baggage_status + report_date`）により再実行時の重複INSERTは防止されている。
 
 ```json
 {
