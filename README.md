@@ -118,9 +118,9 @@ use_tls  = false
 python -m bin.put_jp_edi
 ```
 1. DBから出荷CSVを生成し、`work/put_outbox` に配置
-2. `work/put_outbox` のCSVをSFTPでJPサーバへPUT
-3. PUT成功時：`work/put_outbox` から `work/put_backup` へ移動、`goods_hawb_ext.jp_download` を更新
-4. PUT失敗時：`work/put_error` へ移動して終了
+2. `work/put_outbox` のCSVをSFTPでJPサーバへPUT → 成功時は `work/put_backup` へ移動
+3. PUT失敗時：`work/put_error` へ移動して終了
+4. `goods_hawb_ext.jp_download` を更新
 5. `work/put_backup` のCSVをS3へバックアップ
 6. S3バックアップ成功時：`work/put_backup` からファイル削除
 7. S3バックアップ失敗時：`work/put_backup` にファイルを残す、次回起動時にリトライ
