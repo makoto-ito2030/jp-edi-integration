@@ -6,7 +6,8 @@ import traceback
 from datetime import datetime
 from pathlib import Path
 
-from lib.lock_manager import acquire_lock, release_lock, LockError
+from lib.lock_manager import acquire_lock, release_lock
+from lib.exceptions import LockError, ConfigError
 from lib.clients.mail_client import send_error_mail
 from lib.get_jp_track.fetch_csv import fetch_csv
 from lib.get_jp_track.process_csv import process_csv
@@ -102,6 +103,13 @@ if __name__ == "__main__":
                     f"Lock file: {LOCK_FILE}\n\n"
                     "If no other process is running, remove the lock file manually and re-run."
                 ),
+            )
+    except ConfigError:
+        logging.critical("Configuration error. Exiting.")
+        if MAIL_ENABLED:
+            send_error_mail(
+                subject="[ERROR] get_jp_track: configuration error",
+                body="get_jp_track could not start due to a configuration error.\n\nCheck settings.ini and the log for details.",
             )
     except Exception:
         logging.exception("Batch failed.")

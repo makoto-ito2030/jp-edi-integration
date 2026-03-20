@@ -3,7 +3,7 @@
 import configparser
 import logging
 import smtplib
-import sys
+from lib.exceptions import ConfigError
 from email.mime.text import MIMEText
 from pathlib import Path
 
@@ -15,12 +15,12 @@ CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / "config" / "settin
 def _load_mail_config() -> dict:
     if not CONFIG_PATH.exists():
         logger.critical("settings.ini not found: %s", CONFIG_PATH)
-        sys.exit(1)
+        raise ConfigError(f"Configuration error: see log for details")
     config = configparser.ConfigParser()
     config.read(CONFIG_PATH, encoding="utf-8")
     if "mail" not in config:
         logger.critical("Missing [mail] section in %s", CONFIG_PATH)
-        sys.exit(1)
+        raise ConfigError(f"Configuration error: see log for details")
     m = config["mail"]
     return {
         "host":     m["host"],

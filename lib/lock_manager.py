@@ -5,11 +5,9 @@ import os
 from datetime import datetime
 from pathlib import Path
 
+from lib.exceptions import LockError
+
 logger = logging.getLogger(__name__)
-
-
-class LockError(Exception):
-    """Raised when a lock file already exists (duplicate execution detected)."""
 
 
 def _now_str() -> str:

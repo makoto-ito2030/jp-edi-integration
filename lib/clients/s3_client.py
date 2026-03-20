@@ -2,7 +2,7 @@
 
 import configparser
 import logging
-import sys
+from lib.exceptions import ConfigError
 from pathlib import Path
 from typing import List, Optional
 
@@ -16,12 +16,12 @@ CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / "config" / "settin
 def _load_s3_config(section: str) -> dict:
     if not CONFIG_PATH.exists():
         logger.critical("settings.ini not found: %s", CONFIG_PATH)
-        sys.exit(1)
+        raise ConfigError(f"Configuration error: see log for details")
     config = configparser.ConfigParser()
     config.read(CONFIG_PATH, encoding="utf-8")
     if section not in config:
         logger.critical("Missing [%s] section in %s", section, CONFIG_PATH)
-        sys.exit(1)
+        raise ConfigError(f"Configuration error: see log for details")
     s3 = config[section]
     return {
         "bucket": s3["bucket"],

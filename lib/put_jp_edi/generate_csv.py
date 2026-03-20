@@ -3,7 +3,7 @@
 import configparser
 import csv
 import logging
-import sys
+from lib.exceptions import ConfigError
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -30,12 +30,12 @@ _SIZE_THRESHOLDS = [
 def _load_jp_edi_config() -> dict:
     if not CONFIG_PATH.exists():
         logger.critical("settings.ini not found: %s", CONFIG_PATH)
-        sys.exit(1)
+        raise ConfigError(f"Configuration error: see log for details")
     config = configparser.ConfigParser()
     config.read(CONFIG_PATH, encoding="utf-8")
     if "jp_edi" not in config:
         logger.critical("Missing [jp_edi] section in %s", CONFIG_PATH)
-        sys.exit(1)
+        raise ConfigError(f"Configuration error: see log for details")
     jp = config["jp_edi"]
     return {
         "biz_card_no":          jp["biz_card_no"],
