@@ -7,7 +7,7 @@ import traceback
 from datetime import datetime
 from pathlib import Path
 
-from lib.lock_manager import acquire_lock, release_lock
+from lib.lock_manager import LockManager
 from lib.exceptions import LockError, ConfigError
 from lib.clients.mail_client import send_error_mail
 from lib.get_jp_track.fetch_csv import fetch_csv
@@ -56,9 +56,9 @@ def _on_complete_with_error(filename: str) -> None:
         )
 
 
-def step1_prevent_duplicate_execution() -> None:
+def step1_prevent_duplicate_execution() -> LockManager:
     """Prevent duplicate execution using a lock file."""
-    acquire_lock(LOCK_FILE)
+    return LockManager(LOCK_FILE)
 
 
 def step2_fetch_csv() -> None:
@@ -90,9 +90,9 @@ def step3_process_csv_files() -> None:
 if __name__ == "__main__":
     init_env()
     try:
-        step1_prevent_duplicate_execution()
-        step2_fetch_csv()
-        step3_process_csv_files()
+        with step1_prevent_duplicate_execution():
+            step2_fetch_csv()
+            step3_process_csv_files()
 
     except LockError:
         logging.critical("Duplicate execution detected. Exiting.")
@@ -121,5 +121,3 @@ if __name__ == "__main__":
                 subject="[ERROR] get_jp_track batch failed",
                 body=f"An error occurred in get_jp_track batch.\n\n{traceback.format_exc()}",
             )
-    finally:
-        release_lock(LOCK_FILE)

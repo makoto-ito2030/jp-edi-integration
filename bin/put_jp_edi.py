@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Tuple
 
-from lib.lock_manager import acquire_lock, release_lock
+from lib.lock_manager import LockManager
 from lib.exceptions import LockError, ConfigError
 from lib.clients.mail_client import send_error_mail
 from lib.put_jp_edi.generate_csv import generate_csv
@@ -45,9 +45,9 @@ def init_env() -> None:
     )
 
 
-def step1_prevent_duplicate_execution() -> None:
+def step1_prevent_duplicate_execution() -> LockManager:
     """Prevent duplicate execution using a lock file."""
-    acquire_lock(LOCK_FILE)
+    return LockManager(LOCK_FILE)
 
 
 def step2_generate_csv() -> Tuple[Path, List[str], List[str]]:
@@ -96,12 +96,12 @@ def step6_notify_size_warnings(size_warnings: List[str]) -> None:
 if __name__ == "__main__":
     init_env()
     try:
-        step1_prevent_duplicate_execution()
-        csv_path, hawb_nos, size_warnings = step2_generate_csv()
-        step3_send_csv()
-        step4_update_jp_download(hawb_nos)
-        step5_backup_csv()
-        step6_notify_size_warnings(size_warnings)
+        with step1_prevent_duplicate_execution():
+            csv_path, hawb_nos, size_warnings = step2_generate_csv()
+            step3_send_csv()
+            step4_update_jp_download(hawb_nos)
+            step5_backup_csv()
+            step6_notify_size_warnings(size_warnings)
 
     except LockError:
         logging.critical("Duplicate execution detected. Exiting.")
@@ -131,5 +131,3 @@ if __name__ == "__main__":
                 body=f"An error occurred in put_jp_edi batch.\n\n{traceback.format_exc()}",
             )
         sys.exit(1)
-    finally:
-        release_lock(LOCK_FILE)

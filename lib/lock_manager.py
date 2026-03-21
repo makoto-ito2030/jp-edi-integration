@@ -14,18 +14,33 @@ def _now_str() -> str:
     return datetime.now().strftime("%Y/%m/%d %H:%M:%S")
 
 
-def acquire_lock(lock_file: Path) -> None:
-    """Prevent duplicate execution. Raises LockError if lock file exists."""
-    if lock_file.exists():
-        logger.critical(
-            "Another process is running (lock file exists: %s). Exiting.", lock_file
-        )
-        raise LockError(f"Lock file already exists: {lock_file}")
-    lock_file.write_text(f"{os.getpid()}\n{_now_str()}\n", encoding="utf-8")
-    logger.info("Lock acquired: %s", lock_file)
+class LockManager:
+    """Context manager for lock file based duplicate execution prevention.
 
+    Usage:
+        with LockManager(LOCK_FILE):
+            # do work
 
-def release_lock(lock_file: Path) -> None:
-    if lock_file.exists():
-        lock_file.unlink()
-        logger.info("Lock released: %s", lock_file)
+    Raises LockError on __enter__ if lock file already exists.
+    Releases lock on __exit__ only if lock was successfully acquired.
+    """
+
+    def __init__(self, lock_file: Path) -> None:
+        self._lock_file = lock_file
+        self._acquired = False
+
+    def __enter__(self) -> "LockManager":
+        if self._lock_file.exists():
+            logger.critical(
+                "Another process is running (lock file exists: %s). Exiting.", self._lock_file
+            )
+            raise LockError(f"Lock file already exists: {self._lock_file}")
+        self._lock_file.write_text(f"{os.getpid()}\n{_now_str()}\n", encoding="utf-8")
+        self._acquired = True
+        logger.info("Lock acquired: %s", self._lock_file)
+        return self
+
+    def __exit__(self, *_) -> None:
+        if self._acquired and self._lock_file.exists():
+            self._lock_file.unlink()
+            logger.info("Lock released: %s", self._lock_file)
