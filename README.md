@@ -185,10 +185,57 @@ python -m bin.get_jp_track
 
 ## タスクスケジューラ
 
-（後で記載）
+cronまたはタスクスケジューラで以下のタイミングで実行する。
+
+### PUTバッチ
+
+保税の搬出区切りに合わせて実行する。
+
+```cron
+0 11,16,22 * * * cd /path/to/jp-edi-integration && python -m bin.put_jp_edi
+```
+
+| 実行時刻 | 対象 |
+|----------|------|
+| 11:00 | 午前中の搬出分 |
+| 16:00 | 午後の搬出分 |
+| 22:00 | 夜間の搬出分 |
+
+### GETバッチ
+
+JPが 13:05、18:05、23:55 にデータ生成するため、生成完了から約2時間後に取得する。
+
+```cron
+5 15,20 * * * cd /path/to/jp-edi-integration && python -m bin.get_jp_track
+55 1 * * * cd /path/to/jp-edi-integration && python -m bin.get_jp_track
+```
+
+| 実行時刻 | JP側データ生成 | JP側配置完了 |
+|----------|----------------|--------------|
+| 15:05 | 13:05 | 15:05までに配置 |
+| 20:05 | 18:05 | 20:05までに配置 |
+| 翌1:55 | 23:55 | 翌1:55までに配置 |
 
 ## メール通知
 
-（後で記載）
+`[feature] mail_enabled = true` の場合、以下の条件でエラーメールを送信する。  
+送信先は `[mail] to` に設定したアドレス。
 
-エラー時などに特定のアドレス宛にエラーメールを送信する。
+### PUTバッチ
+
+| 条件 | 件名 |
+|------|------|
+| ロックファイルが既に存在する（二重起動検知） | `[ERROR] put_jp_edi: lock file exists` |
+| 設定ファイル（settings.ini）が見つからない、または必須セクションが欠落している | `[ERROR] put_jp_edi: configuration error` |
+| バッチ全体で予期しないエラーが発生した | `[ERROR] put_jp_edi batch failed` |
+| サイズコードが解決できないレコードが存在した（フィールド27を空白で送信） | `[WARN] put_jp_edi: unresolvable size code(s) found` |
+
+### GETバッチ
+
+| 条件 | 件名 |
+|------|------|
+| ロックファイルが既に存在する（二重起動検知） | `[ERROR] get_jp_track: lock file exists` |
+| 設定ファイル（settings.ini）が見つからない、または必須セクションが欠落している | `[ERROR] get_jp_track: configuration error` |
+| バッチ全体で予期しないエラーが発生した | `[ERROR] get_jp_track batch failed` |
+| 追跡CSVのフォーマットチェックがNGだった | `[ERROR] get_jp_track: format error in {ファイル名}` |
+| 処理完了したがINSERTエラー行が存在した（手動対応が必要） | `[ERROR] get_jp_track: processing error in {ファイル名}` |
