@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import List, Tuple
 
 from lib.lock_manager import LockManager
+from lib.log_manager import cleanup_old_logs
 from lib.exceptions import LockError, ConfigError
 from lib.clients.mail_client import send_error_mail
 from lib.put_jp_edi.generate_csv import generate_csv
@@ -35,6 +36,7 @@ def init_env() -> None:
     # Create working directories and initialize logger
     for d in (OUTBOX_DIR, BACKUP_DIR, ERROR_DIR, LOG_FILE.parent):
         d.mkdir(parents=True, exist_ok=True)
+    cleanup_old_logs(LOG_FILE.parent, "put_jp_edi", _config.getint("feature", "log_keep_months", fallback=7))
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(message)s",

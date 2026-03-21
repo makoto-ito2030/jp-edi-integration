@@ -34,6 +34,7 @@ shipper_address       = dummy_address
 put_filename_template = XXXXXXXXXXXXXXXXXXXXXXXX0000000000000N.csv
 
 [feature]
+log_keep_months   = 7
 s3_backup_enabled = true
 sftp_get_enabled  = true
 sftp_put_enabled  = true

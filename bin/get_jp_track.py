@@ -8,6 +8,7 @@ from datetime import datetime
 from pathlib import Path
 
 from lib.lock_manager import LockManager
+from lib.log_manager import cleanup_old_logs
 from lib.exceptions import LockError, ConfigError
 from lib.clients.mail_client import send_error_mail
 from lib.get_jp_track.fetch_csv import fetch_csv
@@ -30,6 +31,7 @@ def init_env() -> None:
     # Create working directories and initialize logger
     for d in (INBOX_DIR, LOG_FILE.parent):
         d.mkdir(parents=True, exist_ok=True)
+    cleanup_old_logs(LOG_FILE.parent, "get_jp_track", _config.getint("feature", "log_keep_months", fallback=7))
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(message)s",
