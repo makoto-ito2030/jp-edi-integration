@@ -30,7 +30,8 @@ tracking_no_prefix  = 1234
 shipper_name        = dummy_name
 shipper_tel         = 0000000000
 shipper_postal_code = 0000000
-shipper_address     = dummy_address
+shipper_address       = dummy_address
+put_filename_template = XXXXXXXXXXXXXXXXXXXXXXXX0000000000000N.csv
 
 [feature]
 s3_backup_enabled = true

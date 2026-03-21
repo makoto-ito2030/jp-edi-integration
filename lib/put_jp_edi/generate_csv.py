@@ -38,12 +38,13 @@ def _load_jp_edi_config() -> dict:
         raise ConfigError(f"Configuration error: see log for details")
     jp = config["jp_edi"]
     return {
-        "biz_card_no":          jp["biz_card_no"],
-        "shipper_name":         jp["shipper_name"],
-        "shipper_tel":          jp.get("shipper_tel", ""),
-        "shipper_postal_code":  jp.get("shipper_postal_code", ""),
-        "shipper_address":      jp.get("shipper_address", ""),
-        "tracking_no_prefix":   jp.get("tracking_no_prefix", ""),
+        "biz_card_no":            jp["biz_card_no"],
+        "shipper_name":           jp["shipper_name"],
+        "shipper_tel":            jp.get("shipper_tel", ""),
+        "shipper_postal_code":    jp.get("shipper_postal_code", ""),
+        "shipper_address":        jp.get("shipper_address", ""),
+        "tracking_no_prefix":     jp.get("tracking_no_prefix", ""),
+        "put_filename_template":  jp["put_filename_template"],
     }
 
 
@@ -161,7 +162,9 @@ def generate_csv(outbox_dir: Path) -> Optional[Tuple[Path, List[str], List[str]]
     or None if no records found.
     """
     conf = _load_jp_edi_config()
-    filename = f"put_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+    filename = conf["put_filename_template"].replace(
+        "0000000000000", datetime.now().strftime("%Y%m%d%H%M%S")
+    )
     output_path = outbox_dir / filename
 
     with DBClient() as db:
