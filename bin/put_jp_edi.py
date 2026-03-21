@@ -114,6 +114,7 @@ if __name__ == "__main__":
                     "If no other process is running, remove the lock file manually and re-run."
                 ),
             )
+        sys.exit(1)
     except ConfigError:
         logging.critical("Configuration error. Exiting.")
         if MAIL_ENABLED:
@@ -121,6 +122,7 @@ if __name__ == "__main__":
                 subject="[ERROR] put_jp_edi: configuration error",
                 body="put_jp_edi could not start due to a configuration error.\n\nCheck settings.ini and the log for details.",
             )
+        sys.exit(1)
     except Exception:
         logging.exception("Batch failed.")
         if MAIL_ENABLED:
