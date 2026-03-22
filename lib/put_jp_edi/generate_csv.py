@@ -43,8 +43,9 @@ def _load_jp_edi_config() -> dict:
         "shipper_tel":            jp.get("shipper_tel", ""),
         "shipper_postal_code":    jp.get("shipper_postal_code", ""),
         "shipper_address":        jp.get("shipper_address", ""),
-        "tracking_no_prefix":     jp.get("tracking_no_prefix", ""),
+        "tracking_no_prefix":     jp["tracking_no_prefix"],
         "put_filename_template":  jp["put_filename_template"],
+        "shipping_club":          jp["shipping_club"],
     }
 
 
@@ -66,7 +67,7 @@ def _resolve_size_code(length, width, height) -> Optional[str]:
     return "170"  # over 170cm: use max size code
 
 
-def _fetch_rows(db: DBClient, tracking_no_prefix: str) -> List[Dict]:
+def _fetch_rows(db: DBClient, tracking_no_prefix: str, shipping_club: str) -> List[Dict]:
     """Fetch target records from goods_hawb."""
     sql = """
         SELECT g.*
@@ -74,7 +75,7 @@ def _fetch_rows(db: DBClient, tracking_no_prefix: str) -> List[Dict]:
         LEFT JOIN goods_hawb_ext e ON g.hawb_no = e.hawb_no
         WHERE (
             (g.tracking_no LIKE %s)
-            OR (g.tracking_no IS NULL AND g.shipping_club = 'Yu-Pack')
+            OR (g.tracking_no IS NULL AND g.shipping_club = %s)
         )
         AND g.customs_permit_time IS NOT NULL
         AND g.move_out_time IS NOT NULL
@@ -85,7 +86,7 @@ def _fetch_rows(db: DBClient, tracking_no_prefix: str) -> List[Dict]:
         )
         ORDER BY g.id ASC
     """
-    return db.execute(sql, (f"{tracking_no_prefix}%",))
+    return db.execute(sql, (f"{tracking_no_prefix}%", shipping_club))
 
 
 def _build_row(row: Dict, conf: dict, size_warnings: List[str]) -> Optional[List[str]]:
@@ -171,7 +172,7 @@ def generate_csv(outbox_dir: Path) -> Optional[Tuple[Path, List[str], List[str]]
     output_path = outbox_dir / filename
 
     with DBClient() as db:
-        rows = _fetch_rows(db, conf["tracking_no_prefix"])
+        rows = _fetch_rows(db, conf["tracking_no_prefix"], conf["shipping_club"])
 
     if not rows:
         logger.info("No records to export.")
