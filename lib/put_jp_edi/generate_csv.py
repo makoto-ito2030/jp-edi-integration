@@ -51,8 +51,9 @@ def _load_jp_edi_config() -> dict:
 
 def _resolve_size_code(length, width, height) -> Optional[str]:
     """
-    Calculate size code from 3 dimensions (cm).
-    Returns size code string, or None if dimensions are missing/invalid.
+    Calculate size code from 3 dimensions stored in mm.
+    Converts mm to cm, then returns size code string.
+    Returns None if dimensions are missing/invalid/zero.
     """
     try:
         l, w, h = int(length or 0), int(width or 0), int(height or 0)
@@ -60,9 +61,9 @@ def _resolve_size_code(length, width, height) -> Optional[str]:
         return None
     if l == 0 and w == 0 and h == 0:
         return None
-    total = l + w + h
+    total_cm = (l + w + h) // 10
     for threshold, code in _SIZE_THRESHOLDS:
-        if total <= threshold:
+        if total_cm <= threshold:
             return code
     return "170"  # over 170cm: use max size code
 
