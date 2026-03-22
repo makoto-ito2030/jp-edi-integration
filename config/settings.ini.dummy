@@ -26,7 +26,7 @@ strict_mode = true
 
 [jp_edi]
 biz_card_no         = 00000000000000000000000000000000
-tracking_no_prefix  = 1234
+tracking_no_prefix  = 9999
 shipper_name        = dummy_name
 shipper_tel         = 0000000000
 shipper_postal_code = 0000000
