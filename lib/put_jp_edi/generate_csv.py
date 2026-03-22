@@ -88,18 +88,21 @@ def _fetch_rows(db: DBClient, tracking_no_prefix: str) -> List[Dict]:
     return db.execute(sql, (f"{tracking_no_prefix}%",))
 
 
-def _build_row(row: Dict, conf: dict, size_warnings: List[str]) -> List[str]:
-    """Build a single DENFD CSV row (50 fields) from a goods_hawb record."""
+def _build_row(row: Dict, conf: dict, size_warnings: List[str]) -> Optional[List[str]]:
+    """
+    Build a single DENFD CSV row (50 fields) from a goods_hawb record.
+    Returns None if size code cannot be resolved (record is skipped).
+    """
     s = sanitize
     blank = ""
 
     size_code = _resolve_size_code(row.get("length"), row.get("width"), row.get("height"))
     if size_code is None:
-        size_code = blank
         size_warnings.append(
             f"hawb_no={row.get('hawb_no')} "
             f"length={row.get('length')} width={row.get('width')} height={row.get('height')}"
         )
+        return None
 
     return [
         "DENKAKUTEI",                                            # 1
@@ -177,15 +180,33 @@ def generate_csv(outbox_dir: Path) -> Optional[Tuple[Path, List[str], List[str]]
     logger.info("Fetched %d record(s) from DB.", len(rows))
 
     size_warnings: List[str] = []
+    exported_rows: List[Dict] = []
     with output_path.open("w", encoding="utf-8", newline="") as f:
         writer = csv.writer(f, lineterminator="\r\n")
         for row in rows:
-            writer.writerow(_build_row(row, conf, size_warnings))
+            csv_row = _build_row(row, conf, size_warnings)
+            if csv_row is None:
+                logger.warning(
+                    "Skipped (size unresolvable): hawb_no=%s", row.get("hawb_no")
+                )
+                continue
+            writer.writerow(csv_row)
+            exported_rows.append(row)
 
     if size_warnings:
-        logger.warning("Size code could not be resolved for %d record(s).", len(size_warnings))
+        logger.warning(
+            "%d record(s) skipped due to missing size info.", len(size_warnings)
+        )
 
-    logger.info("Generated CSV: %s (%d rows)", output_path.name, len(rows))
+    if not exported_rows:
+        output_path.unlink(missing_ok=True)
+        logger.info("No records exported after skipping size NG rows.")
+        return None
 
-    hawb_nos = [row["hawb_no"] for row in rows if row.get("hawb_no")]
+    logger.info(
+        "Generated CSV: %s (%d rows, %d skipped)",
+        output_path.name, len(exported_rows), len(size_warnings)
+    )
+
+    hawb_nos = [row["hawb_no"] for row in exported_rows if row.get("hawb_no")]
     return output_path, hawb_nos, size_warnings

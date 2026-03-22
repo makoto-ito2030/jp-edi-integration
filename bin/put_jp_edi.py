@@ -83,13 +83,15 @@ def step5_backup_csv() -> None:
 
 
 def step6_notify_size_warnings(size_warnings: List[str]) -> None:
-    """Send a single warning email if any records had unresolvable size codes."""
+    """Send a single warning email if any records were skipped due to missing size info."""
     if size_warnings and MAIL_ENABLED:
         send_error_mail(
-            subject="[WARN] put_jp_edi: unresolvable size code(s) found",
+            subject="[WARN] put_jp_edi: record(s) skipped due to missing size info",
             body=(
-                f"{len(size_warnings)} record(s) had unresolvable size codes.\n"
-                "Field No.27 (size) was sent as blank.\n\n"
+                f"{len(size_warnings)} record(s) were skipped because size info "
+                f"(length/width/height) is missing or zero.\n"
+                "These records were NOT included in the CSV and jp_download was NOT updated.\n"
+                "Please set length/width/height in goods_hawb and re-run the batch.\n\n"
                 + "\n".join(size_warnings)
             ),
         )
