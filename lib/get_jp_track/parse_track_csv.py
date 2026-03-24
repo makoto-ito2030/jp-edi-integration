@@ -14,7 +14,7 @@ def parse_csv(filepath):
     """
     rows = []
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    with open(filepath, encoding="utf-8", newline="") as f:
+    with open(filepath, encoding="shift-jis", newline="") as f:
         reader = csv.reader(f)
         next(reader)  # skip header
         for row in reader:

@@ -7,7 +7,6 @@ Usage:
 import csv
 import sys
 from datetime import datetime
-from pathlib import Path
 
 # Columns: tracking_no, store_name, handling_datetime, status_code, status
 EXPECTED_COLUMNS = 5
@@ -18,7 +17,7 @@ def validate_file(filepath):
     Row check: no null/empty values, valid datetime format.
     Raises ValueError on failure.
     """
-    with open(filepath, encoding="utf-8", newline="") as f:
+    with open(filepath, encoding="shift-jis", newline="") as f:
         reader = csv.reader(f)
         header = next(reader, None)
 
