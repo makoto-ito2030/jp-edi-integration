@@ -20,6 +20,7 @@ def send_csv(outbox_dir: Path, backup_dir: Path, error_dir: Path) -> None:
         logger.info("No CSV files to send.")
         return
 
+    failed = False
     try:
         with SFTPClient() as client:
             for f in files:
@@ -30,10 +31,13 @@ def send_csv(outbox_dir: Path, backup_dir: Path, error_dir: Path) -> None:
                 except Exception:
                     shutil.move(str(f), error_dir / f.name)
                     logger.exception("%s -> put_error.", f.name)
-                    raise
+                    failed = True
     except Exception:
-        # Move any remaining files in outbox to error_dir (e.g. on connection failure)
+        # Connection-level failure: move any remaining files in outbox to error_dir
         for f in sorted(outbox_dir.glob("*.csv")):
             shutil.move(str(f), error_dir / f.name)
             logger.error("%s -> put_error (connection failed).", f.name)
         raise
+
+    if failed:
+        raise RuntimeError("One or more files failed to send. See log for details.")
