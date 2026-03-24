@@ -1,6 +1,7 @@
 """lib/put_jp_edi/generate_csv.py - Generate DENFD CSV from goods_hawb."""
 
 import configparser
+from lib.config_loader import load_config
 import csv
 import logging
 from lib.exceptions import ConfigError
@@ -31,8 +32,7 @@ def _load_jp_edi_config() -> dict:
     if not CONFIG_PATH.exists():
         logger.critical("settings.ini not found: %s", CONFIG_PATH)
         raise ConfigError(f"Configuration error: see log for details")
-    config = configparser.ConfigParser()
-    config.read(CONFIG_PATH, encoding="utf-8")
+    config = load_config(CONFIG_PATH)
     if "jp_edi" not in config:
         logger.critical("Missing [jp_edi] section in %s", CONFIG_PATH)
         raise ConfigError(f"Configuration error: see log for details")

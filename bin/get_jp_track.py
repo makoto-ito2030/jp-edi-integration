@@ -1,6 +1,7 @@
 """JP EDI - GET batch for tracking CSV."""
 
 import configparser
+from lib.config_loader import load_config
 import logging
 import sys
 import traceback
@@ -20,8 +21,7 @@ INBOX_DIR    = BASE_DIR / "work" / "get_inbox"
 LOCK_FILE    = BASE_DIR / "work" / "get_jp_track.lock"
 LOG_FILE     = BASE_DIR / "logs" / f"get_jp_track_{datetime.now().strftime('%Y%m')}.log"
 
-_config = configparser.ConfigParser()
-_config.read(CONFIG_PATH, encoding="utf-8")
+_config = load_config(CONFIG_PATH)
 S3_BACKUP_ENABLED = _config.getboolean("feature", "s3_backup_enabled", fallback=True)
 SFTP_GET_ENABLED  = _config.getboolean("feature", "sftp_get_enabled",  fallback=True)
 MAIL_ENABLED      = _config.getboolean("feature", "mail_enabled",      fallback=True)

@@ -1,6 +1,7 @@
 """lib/mail_client.py - SMTP email notification client."""
 
 import configparser
+from lib.config_loader import load_config
 import logging
 import smtplib
 from lib.exceptions import ConfigError
@@ -16,8 +17,7 @@ def _load_mail_config() -> dict:
     if not CONFIG_PATH.exists():
         logger.critical("settings.ini not found: %s", CONFIG_PATH)
         raise ConfigError(f"Configuration error: see log for details")
-    config = configparser.ConfigParser()
-    config.read(CONFIG_PATH, encoding="utf-8")
+    config = load_config(CONFIG_PATH)
     if "mail" not in config:
         logger.critical("Missing [mail] section in %s", CONFIG_PATH)
         raise ConfigError(f"Configuration error: see log for details")

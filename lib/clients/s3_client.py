@@ -1,6 +1,7 @@
 """lib/s3_client.py - S3 client (config self-loading)."""
 
 import configparser
+from lib.config_loader import load_config
 import logging
 from lib.exceptions import ConfigError
 from pathlib import Path
@@ -17,8 +18,7 @@ def _load_s3_config(section: str) -> dict:
     if not CONFIG_PATH.exists():
         logger.critical("settings.ini not found: %s", CONFIG_PATH)
         raise ConfigError(f"Configuration error: see log for details")
-    config = configparser.ConfigParser()
-    config.read(CONFIG_PATH, encoding="utf-8")
+    config = load_config(CONFIG_PATH)
     if section not in config:
         logger.critical("Missing [%s] section in %s", section, CONFIG_PATH)
         raise ConfigError(f"Configuration error: see log for details")

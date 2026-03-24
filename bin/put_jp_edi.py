@@ -1,6 +1,7 @@
 """JP EDI - PUT batch for shipping CSV."""
 
 import configparser
+from lib.config_loader import load_config
 import logging
 import sys
 import traceback
@@ -25,8 +26,7 @@ ERROR_DIR   = BASE_DIR / "work" / "put_error"
 LOCK_FILE   = BASE_DIR / "work" / "put_jp_edi.lock"
 LOG_FILE    = BASE_DIR / "logs" / f"put_jp_edi_{datetime.now().strftime('%Y%m')}.log"
 
-_config = configparser.ConfigParser()
-_config.read(CONFIG_PATH, encoding="utf-8")
+_config = load_config(CONFIG_PATH)
 SFTP_PUT_ENABLED  = _config.getboolean("feature", "sftp_put_enabled",  fallback=True)
 S3_BACKUP_ENABLED = _config.getboolean("feature", "s3_backup_enabled", fallback=True)
 MAIL_ENABLED      = _config.getboolean("feature", "mail_enabled",      fallback=True)
