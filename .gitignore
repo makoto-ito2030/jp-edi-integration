@@ -4,4 +4,4 @@ config/settings.ini
 logs/
 __pycache__/
 *.pyc
-
+work/
