@@ -9,9 +9,9 @@ Body record columns:
 """
 
 import csv
+from datetime import datetime
 
 from lib.get_jp_track.constants import STATUS_MAP
-from datetime import datetime
 
 DATETIME_FORMAT = "%Y%m%d%H%M"
 
