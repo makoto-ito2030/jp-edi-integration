@@ -39,10 +39,6 @@ def _load_jp_edi_config() -> dict:
     jp = config["jp_edi"]
     return {
         "biz_card_no":            jp["biz_card_no"],
-        "shipper_name":           jp["shipper_name"],
-        "shipper_tel":            jp.get("shipper_tel", ""),
-        "shipper_postal_code":    jp.get("shipper_postal_code", ""),
-        "shipper_address":        jp.get("shipper_address", ""),
         "tracking_no_prefix":     jp["tracking_no_prefix"],
         "put_filename_template":  jp["put_filename_template"],
         "shipping_club":          jp["shipping_club"],
@@ -117,10 +113,10 @@ def _build_row(row: Dict, conf: dict, size_warnings: List[str]) -> Optional[List
         s(row.get("hawb_no") or blank),                          # 8
         blank,                                                   # 9
         conf["biz_card_no"],                                     # 10
-        conf["shipper_name"],                                    # 11
-        conf["shipper_tel"],                                     # 12
-        conf["shipper_postal_code"],                             # 13
-        conf["shipper_address"],                                 # 14
+        s(row.get("shipper_name") or blank),                     # 11
+        blank,                                                   # 12
+        blank,                                                   # 13
+        blank,                                                   # 14
         s(row.get("consignee_name") or blank),                   # 15
         s(row.get("consignee_tel") or blank),                    # 16
         s(row.get("consignee_postal_code") or blank),            # 17
